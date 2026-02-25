@@ -1,8 +1,11 @@
-const core = require('@actions/core');
-const github = require('@actions/github');
+async function run(modules = {}) {
+    let core = modules.core;
+    let github = modules.github;
 
-async function run() {
     try {
+        core = core || await import('@actions/core');
+        github = github || await import('@actions/github');
+
         const context = github.context;
 
         const allowedEvents = ['pull_request', 'pull_request_target'];
@@ -40,4 +43,6 @@ async function run() {
 // Export is only used for testing
 module.exports = run;
 
-run();
+if (require.main === module) {
+    run();
+}

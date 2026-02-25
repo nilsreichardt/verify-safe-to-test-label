@@ -1,13 +1,18 @@
-const core = require('@actions/core');
-const github = require('@actions/github');
 const run = require('./index');
 
-jest.mock('@actions/core');
-jest.mock('@actions/github');
-
 describe('verify-safe-to-test-label', () => {
+    const core = {
+        getInput: jest.fn(),
+        setFailed: jest.fn(),
+    };
+    const github = {
+        context: {},
+        getOctokit: jest.fn(),
+    };
+
     afterEach(() => {
         jest.clearAllMocks();
+        github.context = {};
     });
 
     test('should fail when pull request is from a fork and "safe-to-test" label is not assigned', async () => {
@@ -35,7 +40,7 @@ describe('verify-safe-to-test-label', () => {
 
         core.getInput.mockReturnValue('safe-to-test');
 
-        await run();
+        await run({ core, github });
 
         expect(core.setFailed).toHaveBeenCalledWith(
             `Pull request does not have the "safe-to-test" label. Code owners must add the "safe-to-test" label to the pull request before it can be tested.`
@@ -71,7 +76,7 @@ describe('verify-safe-to-test-label', () => {
 
         core.getInput.mockReturnValue('safe-to-test');
 
-        await run();
+        await run({ core, github });
 
         expect(core.setFailed).toHaveBeenCalledTimes(0);
     });
@@ -101,7 +106,7 @@ describe('verify-safe-to-test-label', () => {
 
         core.getInput.mockReturnValue('safe-to-test');
 
-        await run();
+        await run({ core, github });
 
         expect(core.setFailed).toHaveBeenCalledTimes(0);
     });
@@ -131,23 +136,20 @@ describe('verify-safe-to-test-label', () => {
 
         core.getInput.mockReturnValue('safe-to-test');
 
-        await run();
+        await run({ core, github });
 
         expect(core.setFailed).toHaveBeenCalledTimes(0);
         expect(github.getOctokit).toHaveBeenCalledTimes(0);
     });
 
     test('should fail when there is an error', async () => {
-        const errorMessage = 'An error occurred';
         github.context.eventName = 'pull_request';
         github.context.payload = null;
 
         core.getInput.mockReturnValue('safe-to-test');
 
-        try {
-            await run();
-        } catch (error) {
-            expect(core.setFailed).toHaveBeenCalledWith(errorMessage);
-        }
+        await run({ core, github });
+
+        expect(core.setFailed).toHaveBeenCalledWith("Cannot read properties of null (reading 'pull_request')");
     });
 });
