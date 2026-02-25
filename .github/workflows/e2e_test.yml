@@ -4,6 +4,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
+permissions: {}
+
 jobs:
   e2e-test:
     runs-on: ubuntu-latest
