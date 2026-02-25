@@ -55,7 +55,7 @@ function parseCJS (source, name = '@') {
 function decode (str) {
   if (str[0] === '"' || str[0] === '\'') {
     try {
-      const decoded = (0, eval)(str);
+      const decoded = scanStringLiteral(str);
       // Filter to exclude non-matching UTF-16 surrogate strings
       for (let i = 0; i < decoded.length; i++) {
         const surrogatePrefix = decoded.charCodeAt(i) & 0xFC00;
@@ -137,8 +137,10 @@ function parseSource (cjsSource) {
               pos += 4;
             if (source.charCodeAt(pos) === 40/*(*/) {
               openTokenPosStack[openTokenDepth++] = lastTokenPos;
-              if (source.charCodeAt(++pos) === 114/*r*/)
+              if (source.charCodeAt(pos + 1) === 114/*r*/) {
+                pos++;
                 tryParseRequire(ExportStar);
+              }
             }
           }
           lastTokenPos = pos;
@@ -288,7 +290,7 @@ function tryBacktrackAddStarExportBinding (bPos) {
 
 // `Object.` `prototype.`? hasOwnProperty.call(`  IDENTIFIER `, ` IDENTIFIER$2 `)`
 function tryParseObjectHasOwnProperty (it_id) {
-  ch = commentWhitespace();
+  let ch = commentWhitespace();
   if (ch !== 79/*O*/ || !source.startsWith('bject', pos + 1)) return false;
   pos += 6;
   ch = commentWhitespace();
@@ -1025,6 +1027,168 @@ function tryParseLiteralExports () {
   }
 }
 
+// This function and it's callees are duplicated in src/lexer.js
+function scanStringLiteral (source) {
+  const quote = source[0];
+
+  // try JSON.parse first for performance
+  if (quote === '"') {
+    try {
+      return JSON.parse(source);
+    } catch {
+      // ignored
+    }
+  } else if (quote === "'" && source.length > 1 && source[source.length - 1] === "'" && source.indexOf('"') === -1) {
+    try {
+      return JSON.parse('"' + source.slice(1, -1) + '"');
+    } catch {
+      // ignored
+    }
+  }
+
+  // fall back to doing it the hard way
+  let parsed = '';
+  let index = { v: 1 };
+
+  while (index.v < source.length) {
+    const char = source[index.v];
+    switch (char) {
+      case quote: {
+        return parsed;
+      }
+      case '\\': {
+        ++index.v;
+        parsed += scanEscapeSequence(source, index);
+        break;
+      }
+      case '\r':
+      case '\n': {
+        throw new SyntaxError();
+      }
+      default: {
+        ++index.v;
+        parsed += char;
+      }
+    }
+  }
+
+  throw new SyntaxError();
+}
+
+function scanEscapeSequence (source, index) {
+  if (index.v === source.length) {
+    throw new SyntaxError();
+  }
+  const char = source[index.v];
+  ++index.v;
+  switch (char) {
+    case '\r': {
+      if (source[index.v] === '\n') {
+        ++index.v;
+      }
+      // fall through
+    }
+    case '\n':
+    case '\u2028':
+    case '\u2029': {
+      return '';
+    }
+    case 'r': {
+      return '\r';
+    }
+    case 'n': {
+      return '\n';
+    }
+    case 't': {
+      return '\t';
+    }
+    case 'b': {
+      return '\b';
+    }
+    case 'f': {
+      return '\f';
+    }
+    case 'v': {
+      return '\v';
+    }
+    case 'x': {
+      return scanHexEscapeSequence(source, index);
+    }
+    case 'u': {
+      return scanUnicodeEscapeSequence(source, index);
+    }
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7': {
+      return scanOctalEscapeSequence(char, source, index);
+    }
+    default: {
+      return char;
+    }
+  }
+}
+
+function scanHexEscapeSequence (source, index) {
+  const a = readHex(source[index.v]);
+  ++index.v;
+  const b = readHex(source[index.v]);
+  ++index.v;
+  return String.fromCodePoint(a * 16 + b);
+}
+
+function scanUnicodeEscapeSequence (source, index) {
+  let result = 0;
+  if (source[index.v] === '{') {
+    ++index.v;
+    do {
+      result = result * 16 + readHex(source[index.v]);
+      if (result > 0x10FFFF) {
+        throw new SyntaxError();
+      }
+      ++index.v;
+    } while (source[index.v] !== '}');
+    ++index.v;
+  } else {
+    for (let i = 0; i < 4; ++i) {
+      result = result * 16 + readHex(source[index.v]);
+      ++index.v;
+    }
+  }
+  return String.fromCodePoint(result);
+}
+
+function scanOctalEscapeSequence (char, source, index) {
+  let toRead = char <= '3' ? 2 : 1;
+  let result = +char;
+  do {
+    char = source[index.v];
+    if (char < '0' || char > '7') {
+      break;
+    }
+    result = result * 8 + (+char);
+    ++index.v;
+    --toRead;
+  } while (toRead > 0);
+  return String.fromCodePoint(result);
+}
+
+function readHex (char) {
+  if (char >= '0' && char <= '9') {
+    return +char;
+  } else if (char >= 'a' && char <= 'f') {
+    return char.charCodeAt(0) - 87;
+  } else if (char >= 'A' && char <= 'F') {
+    return char.charCodeAt(0) - 55;
+  }
+  throw new SyntaxError();
+}
+
+
 // --- Extracted from AcornJS ---
 //(https://github.com/acornjs/acorn/blob/master/acorn/src/identifier.js#L23
 //
@@ -1149,6 +1313,10 @@ function codePointAtLast (bPos) {
   return ch;
 }
 
+function esmSyntaxErr (msg) {
+  return Object.assign(new Error(msg), { code: 'ERR_LEXER_ESM_SYNTAX' });
+}
+
 function throwIfImportStatement () {
   const startPos = pos;
   pos += 6;
@@ -1160,7 +1328,7 @@ function throwIfImportStatement () {
       return;
     // import.meta
     case 46/*.*/:
-      throw new Error('Unexpected import.meta in CJS module.');
+      throw esmSyntaxErr('Unexpected import.meta in CJS module.');
 
     default:
       // no space after "import" -> not an import keyword
@@ -1176,7 +1344,7 @@ function throwIfImportStatement () {
         return;
       }
       // import statements are a syntax error in CommonJS
-      throw new Error('Unexpected import statement in CJS module.');
+      throw esmSyntaxErr('Unexpected import statement in CJS module.');
   }
 }
 
@@ -1186,7 +1354,7 @@ function throwIfExportStatement () {
   const ch = commentWhitespace();
   if (pos === curPos && !isPunctuator(ch))
     return;
-  throw new Error('Unexpected export statement in CJS module.');
+  throw esmSyntaxErr('Unexpected export statement in CJS module.');
 }
 
 function commentWhitespace () {
@@ -1435,4 +1603,5 @@ function isExpressionTerminator (curPos) {
 const initPromise = Promise.resolve();
 
 module.exports.init = () => initPromise;
+module.exports.initSync = () => {};
 module.exports.parse = parseCJS;
