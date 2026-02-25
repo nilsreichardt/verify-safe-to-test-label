@@ -26,15 +26,15 @@ async function run(modules = {}) {
 
         const safeToTestLabelName = core.getInput('label');
 
-        // Check if pull request has the "safe-to-test" label
+        // Check if pull request has the configured safe-to-test label
         const labels = context.payload.pull_request.labels;
         const hasSafeToTestLabel = labels.find(label => label.name === safeToTestLabelName);
         if (hasSafeToTestLabel) {
-            console.log(`Pull request have the "safe-to-test" label, skipping.`);
+            console.log(`Pull request have the "${safeToTestLabelName}" label, skipping.`);
             return;
         }
 
-        core.setFailed(`Pull request does not have the "safe-to-test" label. Code owners must add the "safe-to-test" label to the pull request before it can be tested.`);
+        core.setFailed(`Pull request does not have the "${safeToTestLabelName}" label. Code owners must add the "${safeToTestLabelName}" label to the pull request before it can be tested.`);
     } catch (error) {
         core.setFailed(error.message);
     }
