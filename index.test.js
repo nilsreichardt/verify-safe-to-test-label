@@ -1,232 +1,201 @@
 const run = require('./index');
 
 describe('verify-safe-to-test-label', () => {
-    const core = {
-        getInput: jest.fn(),
-        setFailed: jest.fn(),
-    };
-    const github = {
-        context: {},
-        getOctokit: jest.fn(),
-    };
-
     afterEach(() => {
         jest.clearAllMocks();
-        github.context = {};
     });
 
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-
-    afterAll(() => {
-        consoleLogSpy.mockRestore();
-    });
-
-    test('should fail when pull request is from a fork and "safe-to-test" label is not assigned', async () => {
-        const payload = {
-            pull_request: {
-                head: {
-                    repo: {
-                        full_name: 'fork-owner/repo',
-                    },
-                },
-                base: {
-                    repo: {
-                        full_name: 'base-owner/repo',
-                    },
-                },
-                labels: [],
-            },
-            repository: {
-                full_name: 'base-owner/repo',
-            },
-        };
-
-        github.context.eventName = 'pull_request';
-        github.context.payload = payload;
-
+    test('fails when pull request is from a fork and required label is missing', async () => {
+        const core = createCoreMock();
+        const github = createGithubMock('pull_request', createForkPayload([]));
         core.getInput.mockReturnValue('safe-to-test');
 
         await run({ core, github });
 
         expect(core.setFailed).toHaveBeenCalledWith(
-            `Pull request does not have the "safe-to-test" label. Code owners must add the "safe-to-test" label to the pull request before it can be tested.`
+            'Pull request does not have the "safe-to-test" label. ' +
+            'Code owners must add the "safe-to-test" label to the pull request before it can be tested.'
         );
     });
 
-    test('should not fail when pull request is from a fork and "safe-to-test" label is assigned', async () => {
-        const payload = {
-            pull_request: {
-                head: {
-                    repo: {
-                        full_name: 'fork-owner/repo',
-                    },
-                },
-                base: {
-                    repo: {
-                        full_name: 'base-owner/repo',
-                    },
-                },
-                labels: [
-                    {
-                        name: 'safe-to-test',
-                    },
-                ],
-            },
-            repository: {
-                full_name: 'base-owner/repo',
-            },
-        };
-
-        github.context.eventName = 'pull_request';
-        github.context.payload = payload;
-
+    test('does not fail when pull request is from a fork and required label exists', async () => {
+        const core = createCoreMock();
+        const github = createGithubMock('pull_request', createForkPayload([{ name: 'safe-to-test' }]));
         core.getInput.mockReturnValue('safe-to-test');
 
         await run({ core, github });
 
-        expect(core.setFailed).toHaveBeenCalledTimes(0);
+        expect(core.setFailed).not.toHaveBeenCalled();
+        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe-to-test" label, skipping.');
     });
 
-    test('should use configured label in failure message', async () => {
+    test('uses configured label in failure message', async () => {
         const customLabelName = 'ready-for-ci';
-        const payload = {
-            pull_request: {
-                head: {
-                    repo: {
-                        full_name: 'fork-owner/repo',
-                    },
-                },
-                base: {
-                    repo: {
-                        full_name: 'base-owner/repo',
-                    },
-                },
-                labels: [],
-            },
-            repository: {
-                full_name: 'base-owner/repo',
-            },
-        };
-
-        github.context.eventName = 'pull_request';
-        github.context.payload = payload;
-
+        const core = createCoreMock();
+        const github = createGithubMock('pull_request', createForkPayload([]));
         core.getInput.mockReturnValue(customLabelName);
 
         await run({ core, github });
 
         expect(core.setFailed).toHaveBeenCalledWith(
-            `Pull request does not have the "${customLabelName}" label. Code owners must add the "${customLabelName}" label to the pull request before it can be tested.`
+            `Pull request does not have the "${customLabelName}" label. ` +
+            `Code owners must add the "${customLabelName}" label to the pull request before it can be tested.`
         );
     });
 
-    test('should use configured label in skip log message', async () => {
-        const customLabelName = 'ready-for-ci';
-        const payload = {
-            pull_request: {
-                head: {
-                    repo: {
-                        full_name: 'fork-owner/repo',
-                    },
-                },
-                base: {
-                    repo: {
-                        full_name: 'base-owner/repo',
-                    },
-                },
-                labels: [
-                    {
-                        name: customLabelName,
-                    },
-                ],
-            },
-            repository: {
-                full_name: 'base-owner/repo',
-            },
-        };
-
-        github.context.eventName = 'pull_request';
-        github.context.payload = payload;
-
-        core.getInput.mockReturnValue(customLabelName);
+    test('normalizes an empty configured label to default', async () => {
+        const core = createCoreMock();
+        const github = createGithubMock('pull_request', createForkPayload([]));
+        core.getInput.mockReturnValue('   ');
 
         await run({ core, github });
 
-        expect(core.setFailed).toHaveBeenCalledTimes(0);
-        expect(consoleLogSpy).toHaveBeenCalledWith(
-            `Pull request have the "${customLabelName}" label, skipping.`
+        expect(core.setFailed).toHaveBeenCalledWith(
+            'Pull request does not have the "safe to test" label. ' +
+            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
         );
     });
 
-    test('should not fail when pull request is not from a fork', async () => {
-        const payload = {
-            pull_request: {
-                head: {
-                    repo: {
-                        full_name: 'base-owner/repo',
-                    },
-                },
-                base: {
-                    repo: {
-                        full_name: 'base-owner/repo',
-                    },
-                },
-                labels: [],
-            },
-            repository: {
-                full_name: 'base-owner/repo',
-            },
-        };
-
-        github.context.eventName = 'pull_request';
-        github.context.payload = payload;
-
-        core.getInput.mockReturnValue('safe-to-test');
+    test('normalizes a non-string configured label to default', async () => {
+        const core = createCoreMock();
+        const github = createGithubMock('pull_request', createForkPayload([]));
+        core.getInput.mockReturnValue(undefined);
 
         await run({ core, github });
 
-        expect(core.setFailed).toHaveBeenCalledTimes(0);
+        expect(core.setFailed).toHaveBeenCalledWith(
+            'Pull request does not have the "safe to test" label. ' +
+            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
+        );
     });
 
-    test('should skip when eventName is not allowed', async () => {
-        const payload = {
-            pull_request: {
-                head: {
-                    repo: {
-                        full_name: 'fork-owner/repo',
-                    },
-                },
-                base: {
-                    repo: {
-                        full_name: 'base-owner/repo',
-                    },
-                },
-                labels: [],
-            },
-            repository: {
-                full_name: 'base-owner/repo',
-            },
-        };
-
-        github.context.eventName = 'not_allowed_event';
-        github.context.payload = payload;
-
-        core.getInput.mockReturnValue('safe-to-test');
+    test('does not fail when pull request is not from a fork', async () => {
+        const core = createCoreMock();
+        const github = createGithubMock('pull_request', createSameRepoPayload([]));
+        core.getInput.mockReturnValue('safe to test');
 
         await run({ core, github });
 
-        expect(core.setFailed).toHaveBeenCalledTimes(0);
-        expect(github.getOctokit).toHaveBeenCalledTimes(0);
+        expect(core.setFailed).not.toHaveBeenCalled();
+        expect(core.info).toHaveBeenCalledWith('Pull request is not from a fork, skipping.');
     });
 
-    test('should fail when there is an error', async () => {
-        github.context.eventName = 'pull_request';
-        github.context.payload = null;
-
-        core.getInput.mockReturnValue('safe-to-test');
+    test('skips unsupported events', async () => {
+        const core = createCoreMock();
+        const github = createGithubMock('push', createForkPayload([]));
+        core.getInput.mockReturnValue('safe to test');
 
         await run({ core, github });
 
-        expect(core.setFailed).toHaveBeenCalledWith("Cannot read properties of null (reading 'pull_request')");
+        expect(core.setFailed).not.toHaveBeenCalled();
+        expect(core.info).toHaveBeenCalledWith(
+            'Event "push", skipping. This action only supports: pull_request, pull_request_target.'
+        );
+    });
+
+    test('fails with clear message when payload is missing pull_request', async () => {
+        const core = createCoreMock();
+        const github = createGithubMock('pull_request', { repository: { full_name: 'base-owner/repo' } });
+        core.getInput.mockReturnValue('safe to test');
+
+        await run({ core, github });
+
+        expect(core.setFailed).toHaveBeenCalledWith('Event payload does not include a pull_request object.');
+    });
+
+    test('fails with clear message when repository names are unavailable', async () => {
+        const core = createCoreMock();
+        const github = createGithubMock('pull_request', {
+            pull_request: {
+                head: { repo: {} },
+                base: { repo: {} },
+                labels: [],
+            },
+            repository: {},
+        });
+        core.getInput.mockReturnValue('safe to test');
+
+        await run({ core, github });
+
+        expect(core.setFailed).toHaveBeenCalledWith(
+            'Unable to determine head/base repository names from the event payload.'
+        );
+    });
+
+    test('treats non-array labels as missing labels', async () => {
+        const core = createCoreMock();
+        const payload = createForkPayload([]);
+        const github = createGithubMock('pull_request', {
+            ...payload,
+            pull_request: {
+                ...payload.pull_request,
+                labels: null,
+            },
+        });
+        core.getInput.mockReturnValue('safe to test');
+
+        await run({ core, github });
+
+        expect(core.setFailed).toHaveBeenCalledWith(
+            'Pull request does not have the "safe to test" label. ' +
+            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
+        );
     });
 });
+
+function createCoreMock() {
+    return {
+        getInput: jest.fn(),
+        setFailed: jest.fn(),
+        info: jest.fn(),
+    };
+}
+
+function createGithubMock(eventName, payload) {
+    return {
+        context: { eventName, payload },
+        getOctokit: jest.fn(),
+    };
+}
+
+function createForkPayload(labels = []) {
+    return {
+        pull_request: {
+            head: {
+                repo: {
+                    full_name: 'fork-owner/repo',
+                },
+            },
+            base: {
+                repo: {
+                    full_name: 'base-owner/repo',
+                },
+            },
+            labels,
+        },
+        repository: {
+            full_name: 'base-owner/repo',
+        },
+    };
+}
+
+function createSameRepoPayload(labels = []) {
+    return {
+        pull_request: {
+            head: {
+                repo: {
+                    full_name: 'base-owner/repo',
+                },
+            },
+            base: {
+                repo: {
+                    full_name: 'base-owner/repo',
+                },
+            },
+            labels,
+        },
+        repository: {
+            full_name: 'base-owner/repo',
+        },
+    };
+}
