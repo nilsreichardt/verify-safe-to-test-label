@@ -10,12 +10,16 @@ If you are using `pull_request_target` in your workflows, there is a high probab
 
 1.  Add the `labeled` type to your `pull_request_target` trigger.
 2.  Add `nilsreichardt/verify-safe-to-test-label@v1` to the start of your job.
-3.  Enable `require-reapproval: true` to prevent "Bait & Switch" attacks (where an attacker pushes malicious code _after_ you've already approved the PR).
 
 ```yaml
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, labeled]
+    types:
+      - opened
+      - synchronize
+      - reopened
+      # Used to trigger the action when the "safe to test" label is added to the PR
+      - labeled
 
 jobs:
   integration-tests:
@@ -30,7 +34,7 @@ jobs:
         uses: nilsreichardt/verify-safe-to-test-label@v1
         with:
           label: "safe to test" # optional, default is "safe to test"
-          require-reapproval: true # optional, removes label on every workflow run to force re-review of new commits
+          require-reapproval: true # optional, default is true.
 
       # 2. Securely run your tests
       - name: Checkout PR code
@@ -79,5 +83,5 @@ The **Label Gate** solution allows you to keep `pull_request_target` while addin
 | Name    | Description                                      | Default        |
 | ------- | ------------------------------------------------ | -------------- |
 | `label` | The name of the label required to pass the check | `safe to test` |
-| `require-reapproval` | Remove the label on every workflow run to force re-review of new commits. When you set this to `false`, an attacker could push malicious code _after_ you've assigned the label to mark the code as safe. | `true` |
+| `require-reapproval` | Remove the label on every workflow run to force re-review of new commits. When you set this to `false`, an attacker could push malicious code _after_ you marked the code as safe with the label. | `true` |
 | `repo-token` | Token used to remove labels when `require-reapproval=true`. Requires `pull-requests: write` | `github.token` |
