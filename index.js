@@ -26,7 +26,9 @@ async function run(modules = {}) {
         const safeToTestLabelName = normalizeLabel(core.getInput('label'));
         const shouldRequireReapproval = toBoolean(core.getInput('require-reapproval'));
 
-        if (shouldRequireReapproval && hasLabel(pullRequest, safeToTestLabelName)) {
+        const hasLabel = checkLabel(pullRequest, safeToTestLabelName);
+
+        if (shouldRequireReapproval && hasLabel) {
             const token = core.getInput('repo-token');
             try {
                 await removeLabel({
@@ -37,7 +39,7 @@ async function run(modules = {}) {
                     pullRequest,
                     payload,
                 });
-                core.info(`Removed the "${safeToTestLabelName}" label from pull request. Every change must be re-approved.`);
+                core.info(`Removed the "${safeToTestLabelName}" label from pull request. Every change must be re-approved. Next commit requires the "${safeToTestLabelName}" label again.`);
             } catch (error) {
                 if (isLabelAlreadyGoneError(error)) {
                     pullRequest.labels = Array.isArray(pullRequest.labels)
@@ -50,8 +52,8 @@ async function run(modules = {}) {
             }
         }
 
-        if (hasLabel(pullRequest, safeToTestLabelName)) {
-            core.info(`Pull request has the "${safeToTestLabelName}" label, skipping.`);
+        if (hasLabel) {
+            core.info(`Pull request has the "${safeToTestLabelName}" label, changes are approved.`);
             return;
         }
 
@@ -121,7 +123,7 @@ function getRepositoryNames(payload, pullRequest) {
     return { headRepoFullName, baseRepoFullName };
 }
 
-function hasLabel(pullRequest, labelName) {
+function checkLabel(pullRequest, labelName) {
     if (!Array.isArray(pullRequest.labels)) {
         return false;
     }
