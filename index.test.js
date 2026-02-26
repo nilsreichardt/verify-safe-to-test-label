@@ -50,7 +50,7 @@ describe('verify-safe-to-test-label', () => {
             issue_number: 1,
             name: 'safe to test',
         });
-        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved. Next commit requires the "safe to test" label again.');
+        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved. Next workflow run requires the "safe to test" label again.');
         expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, changes are approved.');
         expect(core.setFailed).not.toHaveBeenCalled();
     });
@@ -76,7 +76,7 @@ describe('verify-safe-to-test-label', () => {
             issue_number: 1,
             name: 'safe to test',
         });
-        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved. Next commit requires the "safe to test" label again.');
+        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved. Next workflow run requires the "safe to test" label again.');
         expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, changes are approved.');
         expect(core.setFailed).not.toHaveBeenCalled();
     });

@@ -39,7 +39,7 @@ async function run(modules = {}) {
                     pullRequest,
                     payload,
                 });
-                core.info(`Removed the "${safeToTestLabelName}" label from pull request. Every change must be re-approved. Next commit requires the "${safeToTestLabelName}" label again.`);
+                core.info(`Removed the "${safeToTestLabelName}" label from pull request. Every change must be re-approved. Next workflow run requires the "${safeToTestLabelName}" label again.`);
             } catch (error) {
                 if (isLabelAlreadyGoneError(error)) {
                     pullRequest.labels = Array.isArray(pullRequest.labels)
