@@ -73,7 +73,7 @@ jobs:
   
   linux-tests:
     needs: verify-safe-to-test-label # This job will only run if the verify-safe-to-test-label job passes
-    runs-on: linux-latest
+    runs-on: ubuntu-latest
     steps:
       # [... steps for linux tests]
 ```
