@@ -31,14 +31,14 @@ jobs:
     steps:
       # 1. Check the gate (and reset it on every workflow run when require-reapproval=true)
       - name: Ensure PR has "safe to test" label, if PR is from a fork
-        uses: nilsreichardt/verify-safe-to-test-label@v1
+        uses: nilsreichardt/verify-safe-to-test-label@v2
         with:
           label: "safe to test" # optional, default is "safe to test"
           require-reapproval: true # optional, default is true.
 
       # 2. Securely run your tests
       - name: Checkout PR code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
