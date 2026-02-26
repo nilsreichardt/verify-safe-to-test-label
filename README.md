@@ -1,5 +1,7 @@
 # verify-safe-to-test-label
 
+<a href="https://codecov.io/gh/nilsreichardt/verify-safe-to-test-label"><img src="https://codecov.io/gh/nilsreichardt/verify-safe-to-test-label/branch/main/graph/badge.svg" alt="codecov"></a>
+
 A GitHub Action that verifies if the `safe to test` label is assigned to a Pull Request before running sensitive steps.
 
 If you are using `pull_request_target` in your workflows, there is a high probability your repository is vulnerable to secret exfiltration. This action acts as a manual "Gatekeeper" to protect your infrastructure.
