@@ -141,6 +141,42 @@ describe('verify-safe-to-test-label', () => {
             'Code owners must add the "safe to test" label to the pull request before it can be tested.'
         );
     });
+
+    test('loads action modules when dependencies are not injected', async () => {
+        await expect(run()).rejects.toThrow(/Cannot read properties of undefined/);
+    });
+
+    test('loads github module when only core is injected', async () => {
+        const core = createCoreMock();
+
+        await run({ core });
+        expect(core.setFailed).not.toHaveBeenCalledWith('Event payload does not include a pull_request object.');
+    });
+
+    test('normalizes missing github.context to empty object', async () => {
+        const core = createCoreMock();
+        const github = { context: null };
+        core.getInput.mockReturnValue('safe to test');
+
+        await run({ core, github });
+
+        expect(core.setFailed).not.toHaveBeenCalled();
+        expect(core.info).toHaveBeenCalledWith(
+            'Event "undefined", skipping. This action only supports: pull_request, pull_request_target.'
+        );
+    });
+
+    test('handles non-Error exceptions in run catch block', async () => {
+        const core = createCoreMock();
+        const github = createGithubMock('pull_request', createForkPayload([]));
+        core.getInput.mockImplementation(() => {
+            throw 'non-error failure';
+        });
+
+        await run({ core, github });
+
+        expect(core.setFailed).toHaveBeenCalledWith('non-error failure');
+    });
 });
 
 function createCoreMock() {

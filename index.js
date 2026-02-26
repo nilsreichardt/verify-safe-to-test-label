@@ -85,6 +85,7 @@ function isObject(value) {
 // Export is only used for testing
 module.exports = run;
 
+/* istanbul ignore next -- direct CLI invocation is not exercised in Jest */
 if (require.main === module) {
     run();
 }
