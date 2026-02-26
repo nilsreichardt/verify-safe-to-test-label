@@ -28,7 +28,17 @@ async function run(modules = {}) {
 
         const hasLabel = checkLabel(pullRequest, safeToTestLabelName);
 
-        if (shouldRequireReapproval && hasLabel) {
+        if (!hasLabel) {
+            core.setFailed(
+                `Pull request does not have the "${safeToTestLabelName}" label. ` +
+                `Code owners must add the "${safeToTestLabelName}" label to the pull request before the workflow can run.`
+            );
+            return;
+        }
+
+        core.info(`Pull request has the "${safeToTestLabelName}" label, changes are approved.`);
+
+        if (shouldRequireReapproval) {
             const token = core.getInput('repo-token');
             try {
                 await removeLabel({
@@ -51,16 +61,6 @@ async function run(modules = {}) {
                 }
             }
         }
-
-        if (hasLabel) {
-            core.info(`Pull request has the "${safeToTestLabelName}" label, changes are approved.`);
-            return;
-        }
-
-        core.setFailed(
-            `Pull request does not have the "${safeToTestLabelName}" label. ` +
-            `Code owners must add the "${safeToTestLabelName}" label to the pull request before the workflow can run.`
-        );
     } catch (error) {
         core.setFailed(getFailureMessage(error));
     }

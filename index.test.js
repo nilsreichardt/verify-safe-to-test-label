@@ -50,8 +50,8 @@ describe('verify-safe-to-test-label', () => {
             issue_number: 1,
             name: 'safe to test',
         });
-        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved. Next workflow run requires the "safe to test" label again.');
-        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, changes are approved.');
+        expect(core.info).toHaveBeenNthCalledWith(1, 'Pull request has the "safe to test" label, changes are approved.');
+        expect(core.info).toHaveBeenNthCalledWith(2, 'Removed the "safe to test" label from pull request. Every change must be re-approved. Next workflow run requires the "safe to test" label again.');
         expect(core.setFailed).not.toHaveBeenCalled();
     });
 
@@ -76,8 +76,8 @@ describe('verify-safe-to-test-label', () => {
             issue_number: 1,
             name: 'safe to test',
         });
-        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved. Next workflow run requires the "safe to test" label again.');
-        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, changes are approved.');
+        expect(core.info).toHaveBeenNthCalledWith(1, 'Pull request has the "safe to test" label, changes are approved.');
+        expect(core.info).toHaveBeenNthCalledWith(2, 'Removed the "safe to test" label from pull request. Every change must be re-approved. Next workflow run requires the "safe to test" label again.');
         expect(core.setFailed).not.toHaveBeenCalled();
     });
 
@@ -97,8 +97,8 @@ describe('verify-safe-to-test-label', () => {
 
         await run({ core, github });
 
-        expect(core.info).toHaveBeenCalledWith('Label was removed during action execution, continuing.');
-        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, changes are approved.');
+        expect(core.info).toHaveBeenNthCalledWith(1, 'Pull request has the "safe to test" label, changes are approved.');
+        expect(core.info).toHaveBeenNthCalledWith(2, 'Label was removed during action execution, continuing.');
         expect(core.setFailed).not.toHaveBeenCalled();
     });
 
@@ -341,7 +341,8 @@ describe('verify-safe-to-test-label', () => {
 
         await run({ core, github });
 
-        expect(core.info).toHaveBeenCalledWith('Label was removed during action execution, continuing.');
+        expect(core.info).toHaveBeenNthCalledWith(1, 'Pull request has the "safe to test" label, changes are approved.');
+        expect(core.info).toHaveBeenNthCalledWith(2, 'Label was removed during action execution, continuing.');
         expect(payload.pull_request.labels).toBeNull();
     });
 

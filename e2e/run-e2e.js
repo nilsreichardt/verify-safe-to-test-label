@@ -63,8 +63,8 @@ const scenarios = [
     inputRequireReapproval: 'true',
     expectedExitCode: 0,
     expectedOutputParts: [
-      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
       'Pull request has the "safe to test" label, changes are approved.',
+      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
     ],
     expectedApiCall: {
       method: 'DELETE',
@@ -81,8 +81,8 @@ const scenarios = [
     inputRequireReapproval: 'true',
     expectedExitCode: 0,
     expectedOutputParts: [
-      'Removed the "safe-to-test" label from pull request. Every change must be re-approved.',
       'Pull request has the "safe-to-test" label, changes are approved.',
+      'Removed the "safe-to-test" label from pull request. Every change must be re-approved.',
     ],
     expectedApiCall: {
       method: 'DELETE',
@@ -98,8 +98,8 @@ const scenarios = [
     inputRequireReapproval: 'true',
     expectedExitCode: 0,
     expectedOutputParts: [
-      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
       'Pull request has the "safe to test" label, changes are approved.',
+      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
     ],
     expectedApiCall: {
       method: 'DELETE',
@@ -115,8 +115,8 @@ const scenarios = [
     inputRequireReapproval: 'true',
     expectedExitCode: 0,
     expectedOutputParts: [
-      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
       'Pull request has the "safe to test" label, changes are approved.',
+      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
     ],
     expectedApiCall: {
       method: 'DELETE',
@@ -132,8 +132,8 @@ const scenarios = [
     inputRequireReapproval: 'true',
     expectedExitCode: 0,
     expectedOutputParts: [
-      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
       'Pull request has the "safe to test" label, changes are approved.',
+      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
     ],
     expectedApiCall: {
       method: 'DELETE',
@@ -168,8 +168,8 @@ const scenarios = [
     inputRequireReapproval: 'true',
     expectedExitCode: 0,
     expectedOutputParts: [
-      'Label was removed during action execution, continuing.',
       'Pull request has the "safe to test" label, changes are approved.',
+      'Label was removed during action execution, continuing.',
     ],
     expectedApiCall: {
       method: 'DELETE',
@@ -223,7 +223,7 @@ let failed = 0;
 
       const exitCode = process.exitCode || 0;
       const codeMatches = exitCode === scenario.expectedExitCode;
-      const outputMatches = scenario.expectedOutputParts.every((part) => output.includes(part));
+      const outputMatches = outputIncludesPartsInOrder(output, scenario.expectedOutputParts);
       const apiMatches = validateApiExpectation(scenario, mockApi.calls);
 
       if (codeMatches && outputMatches && apiMatches.ok) {
@@ -335,6 +335,19 @@ function normalizeChunk(chunk, encoding) {
   }
 
   return String(chunk);
+}
+
+function outputIncludesPartsInOrder(output, expectedParts) {
+  let index = 0;
+  for (const part of expectedParts) {
+    const nextIndex = output.indexOf(part, index);
+    if (nextIndex === -1) {
+      return false;
+    }
+    index = nextIndex + part.length;
+  }
+
+  return true;
 }
 
 function validateApiExpectation(scenario, calls) {
