@@ -29,6 +29,7 @@ jobs:
       pull-requests: write
     steps:
       # 1. Check the gate (and reset it on every workflow run when require-reapproval=true)
+      # If the PR is not from a fork, the action will always pass and code is considered as safe to execute.
       - name: Ensure PR has "safe to test" label, if PR is from a fork
         uses: nilsreichardt/verify-safe-to-test-label@v2
         with:
@@ -89,7 +90,7 @@ jobs:
 
 ### The Problem
 
-When you use `pull_request_target`, GitHub grants the runner access to your repository's **Secrets** and a **Read/Write GITHUB_TOKEN**. If your workflow checks out code from the PR author's fork and runs it, you have a critical vulnerability.
+`pull_request_target` runs in the context of the base repository, so it can access the base repo's `GITHUB_TOKEN` and any secrets you expose to the job. If you checkout + execute fork code, you’ve created a trust boundary violation. An attacker could steal secrets and push malicious commits to your repository.
 
 > [!CAUTION]
 > **Is your CI/CD pipeline insecure?**
