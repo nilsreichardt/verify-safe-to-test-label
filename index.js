@@ -59,7 +59,7 @@ async function run(modules = {}) {
 
         core.setFailed(
             `Pull request does not have the "${safeToTestLabelName}" label. ` +
-            `Code owners must add the "${safeToTestLabelName}" label to the pull request before it can be tested.`
+            `Code owners must add the "${safeToTestLabelName}" label to the pull request before the workflow can run.`
         );
     } catch (error) {
         core.setFailed(getFailureMessage(error));

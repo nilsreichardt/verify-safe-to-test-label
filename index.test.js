@@ -14,7 +14,7 @@ describe('verify-safe-to-test-label', () => {
 
         expect(core.setFailed).toHaveBeenCalledWith(
             'Pull request does not have the "safe-to-test" label. ' +
-            'Code owners must add the "safe-to-test" label to the pull request before it can be tested.'
+            'Code owners must add the "safe-to-test" label to the pull request before the workflow can run.'
         );
     });
 
@@ -26,7 +26,7 @@ describe('verify-safe-to-test-label', () => {
         await run({ core, github });
 
         expect(core.setFailed).not.toHaveBeenCalled();
-        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe-to-test" label, skipping.');
+        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe-to-test" label, changes are approved.');
     });
 
     test('removes label when require-reapproval is enabled', async () => {
@@ -50,11 +50,9 @@ describe('verify-safe-to-test-label', () => {
             issue_number: 1,
             name: 'safe to test',
         });
-        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved.');
-        expect(core.setFailed).toHaveBeenCalledWith(
-            'Pull request does not have the "safe to test" label. ' +
-            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
-        );
+        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved. Next commit requires the "safe to test" label again.');
+        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, changes are approved.');
+        expect(core.setFailed).not.toHaveBeenCalled();
     });
 
     test('removes label on labeled event when require-reapproval is enabled', async () => {
@@ -78,11 +76,9 @@ describe('verify-safe-to-test-label', () => {
             issue_number: 1,
             name: 'safe to test',
         });
-        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved.');
-        expect(core.setFailed).toHaveBeenCalledWith(
-            'Pull request does not have the "safe to test" label. ' +
-            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
-        );
+        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved. Next commit requires the "safe to test" label again.');
+        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, changes are approved.');
+        expect(core.setFailed).not.toHaveBeenCalled();
     });
 
     test('continues when label was already removed by race condition', async () => {
@@ -102,10 +98,8 @@ describe('verify-safe-to-test-label', () => {
         await run({ core, github });
 
         expect(core.info).toHaveBeenCalledWith('Label was removed during action execution, continuing.');
-        expect(core.setFailed).toHaveBeenCalledWith(
-            'Pull request does not have the "safe to test" label. ' +
-            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
-        );
+        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, changes are approved.');
+        expect(core.setFailed).not.toHaveBeenCalled();
     });
 
     test('uses helpful error message when workflow token permissions are missing', async () => {
@@ -216,7 +210,7 @@ describe('verify-safe-to-test-label', () => {
 
         expect(core.setFailed).toHaveBeenCalledWith(
             'Pull request does not have the "safe to test" label. ' +
-            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
+            'Code owners must add the "safe to test" label to the pull request before the workflow can run.'
         );
     });
 
@@ -234,10 +228,8 @@ describe('verify-safe-to-test-label', () => {
 
         expect(github.getOctokit).toHaveBeenCalled();
         expect(removeLabelMock).toHaveBeenCalled();
-        expect(core.setFailed).toHaveBeenCalledWith(
-            'Pull request does not have the "safe to test" label. ' +
-            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
-        );
+        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, changes are approved.');
+        expect(core.setFailed).not.toHaveBeenCalled();
     });
 
     test('treats non-array labels as missing', async () => {
@@ -251,7 +243,7 @@ describe('verify-safe-to-test-label', () => {
 
         expect(core.setFailed).toHaveBeenCalledWith(
             'Pull request does not have the "safe to test" label. ' +
-            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
+            'Code owners must add the "safe to test" label to the pull request before the workflow can run.'
         );
     });
 
