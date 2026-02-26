@@ -26,7 +26,7 @@ const scenarios = [
     inputLabel: 'safe-to-test',
     expectedExitCode: 0,
     expectedOutputParts: [
-      'Pull request has the "safe-to-test" label, skipping.',
+      'Pull request has the "safe-to-test" label, changes are approved.',
     ],
   },
   {
@@ -57,14 +57,14 @@ const scenarios = [
     ],
   },
   {
-    name: 'synchronize removes default label via API then blocks until re-approved',
+    name: 'synchronize removes default label via API then allows current run and requires reapproval next run',
     eventName: 'pull_request_target',
     fixtureFile: 'fork-with-default-label.json',
     inputRequireReapproval: 'true',
-    expectedExitCode: 1,
+    expectedExitCode: 0,
     expectedOutputParts: [
       'Removed the "safe to test" label from pull request. Every change must be re-approved.',
-      'Pull request does not have the "safe to test" label.',
+      'Pull request has the "safe to test" label, changes are approved.',
     ],
     expectedApiCall: {
       method: 'DELETE',
@@ -74,15 +74,15 @@ const scenarios = [
     },
   },
   {
-    name: 'synchronize removes custom label via API then blocks until re-approved',
+    name: 'synchronize removes custom label via API then allows current run and requires reapproval next run',
     eventName: 'pull_request',
     fixtureFile: 'fork-with-custom-label-synchronize.json',
     inputLabel: 'safe-to-test',
     inputRequireReapproval: 'true',
-    expectedExitCode: 1,
+    expectedExitCode: 0,
     expectedOutputParts: [
       'Removed the "safe-to-test" label from pull request. Every change must be re-approved.',
-      'Pull request does not have the "safe-to-test" label.',
+      'Pull request has the "safe-to-test" label, changes are approved.',
     ],
     expectedApiCall: {
       method: 'DELETE',
@@ -92,18 +92,52 @@ const scenarios = [
     },
   },
   {
-    name: 'labeled event removes label and blocks when enabled',
+    name: 'labeled event removes label and allows current run when enabled',
     eventName: 'pull_request_target',
     fixtureFile: 'fork-with-default-label-labeled.json',
     inputRequireReapproval: 'true',
-    expectedExitCode: 1,
+    expectedExitCode: 0,
     expectedOutputParts: [
       'Removed the "safe to test" label from pull request. Every change must be re-approved.',
-      'Pull request does not have the "safe to test" label.',
+      'Pull request has the "safe to test" label, changes are approved.',
     ],
     expectedApiCall: {
       method: 'DELETE',
       path: '/repos/base-owner/repo/issues/42/labels/safe%20to%20test',
+      authorization: 'token test-token',
+      statusCode: 204,
+    },
+  },
+  {
+    name: 'opened event removes label and allows current run when enabled',
+    eventName: 'pull_request_target',
+    fixtureFile: 'fork-with-default-label-opened.json',
+    inputRequireReapproval: 'true',
+    expectedExitCode: 0,
+    expectedOutputParts: [
+      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
+      'Pull request has the "safe to test" label, changes are approved.',
+    ],
+    expectedApiCall: {
+      method: 'DELETE',
+      path: '/repos/base-owner/repo/issues/43/labels/safe%20to%20test',
+      authorization: 'token test-token',
+      statusCode: 204,
+    },
+  },
+  {
+    name: 'reopened event removes label and allows current run when enabled',
+    eventName: 'pull_request_target',
+    fixtureFile: 'fork-with-default-label-reopened.json',
+    inputRequireReapproval: 'true',
+    expectedExitCode: 0,
+    expectedOutputParts: [
+      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
+      'Pull request has the "safe to test" label, changes are approved.',
+    ],
+    expectedApiCall: {
+      method: 'DELETE',
+      path: '/repos/base-owner/repo/issues/44/labels/safe%20to%20test',
       authorization: 'token test-token',
       statusCode: 204,
     },
@@ -132,10 +166,10 @@ const scenarios = [
     eventName: 'pull_request_target',
     fixtureFile: 'fork-with-default-label.json',
     inputRequireReapproval: 'true',
-    expectedExitCode: 1,
+    expectedExitCode: 0,
     expectedOutputParts: [
       'Label was removed during action execution, continuing.',
-      'Pull request does not have the "safe to test" label.',
+      'Pull request has the "safe to test" label, changes are approved.',
     ],
     expectedApiCall: {
       method: 'DELETE',
