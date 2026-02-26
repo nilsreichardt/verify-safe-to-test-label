@@ -25,12 +25,12 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      # 1. Check the gate (and optionally reset it on synchronize)
+      # 1. Check the gate (and reset it on every workflow run when require-reapproval=true)
       - name: Ensure PR has "safe to test" label, if PR is from a fork
         uses: nilsreichardt/verify-safe-to-test-label@v1
         with:
           label: "safe to test" # optional, default is "safe to test"
-          require-reapproval: true # optional, removes label on synchronize to force re-review
+          require-reapproval: true # optional, removes label on every workflow run to force re-review of new commits
 
       # 2. Securely run your tests
       - name: Checkout PR code
@@ -79,5 +79,5 @@ The **Label Gate** solution allows you to keep `pull_request_target` while addin
 | Name    | Description                                      | Default        |
 | ------- | ------------------------------------------------ | -------------- |
 | `label` | The name of the label required to pass the check | `safe to test` |
-| `require-reapproval` | Remove the label on `synchronize` events before verification | `false` |
+| `require-reapproval` | Remove the label on every workflow run to force re-review of new commits. When you set this to `false`, an attacker could push malicious code _after_ you've assigned the label to mark the code as safe. | `true` |
 | `repo-token` | Token used to remove labels when `require-reapproval=true`. Requires `pull-requests: write` | `github.token` |

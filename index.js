@@ -1,6 +1,5 @@
 const ALLOWED_EVENTS = ['pull_request', 'pull_request_target'];
 const DEFAULT_LABEL = 'safe to test';
-const SYNCHRONIZE_ACTION = 'synchronize';
 
 async function run(modules = {}) {
     let core = modules.core;
@@ -27,7 +26,7 @@ async function run(modules = {}) {
         const safeToTestLabelName = normalizeLabel(core.getInput('label'));
         const shouldRequireReapproval = toBoolean(core.getInput('require-reapproval'));
 
-        if (shouldRequireReapproval && context.payload?.action === SYNCHRONIZE_ACTION && hasLabel(pullRequest, safeToTestLabelName)) {
+        if (shouldRequireReapproval && hasLabel(pullRequest, safeToTestLabelName)) {
             const token = core.getInput('repo-token');
             try {
                 await removeLabel({

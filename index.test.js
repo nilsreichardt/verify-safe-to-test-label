@@ -29,7 +29,7 @@ describe('verify-safe-to-test-label', () => {
         expect(core.info).toHaveBeenCalledWith('Pull request has the "safe-to-test" label, skipping.');
     });
 
-    test('removes label on synchronize when require-reapproval is enabled', async () => {
+    test('removes label when require-reapproval is enabled', async () => {
         const removeLabelMock = jest.fn().mockResolvedValue(undefined);
         const core = createCoreMock();
         const payload = createForkPayload([{ name: 'safe to test' }], { action: 'synchronize' });
@@ -57,7 +57,7 @@ describe('verify-safe-to-test-label', () => {
         );
     });
 
-    test('does not remove label on labeled event when require-reapproval is enabled', async () => {
+    test('removes label on labeled event when require-reapproval is enabled', async () => {
         const removeLabelMock = jest.fn().mockResolvedValue(undefined);
         const core = createCoreMock();
         const payload = createForkPayload([{ name: 'safe to test' }], { action: 'labeled' });
@@ -71,10 +71,18 @@ describe('verify-safe-to-test-label', () => {
 
         await run({ core, github });
 
-        expect(github.getOctokit).not.toHaveBeenCalled();
-        expect(removeLabelMock).not.toHaveBeenCalled();
-        expect(core.setFailed).not.toHaveBeenCalled();
-        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, skipping.');
+        expect(github.getOctokit).toHaveBeenCalledWith('token-123');
+        expect(removeLabelMock).toHaveBeenCalledWith({
+            owner: 'base-owner',
+            repo: 'repo',
+            issue_number: 1,
+            name: 'safe to test',
+        });
+        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved.');
+        expect(core.setFailed).toHaveBeenCalledWith(
+            'Pull request does not have the "safe to test" label. ' +
+            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
+        );
     });
 
     test('continues when label was already removed by race condition', async () => {

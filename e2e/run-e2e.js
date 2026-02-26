@@ -92,14 +92,21 @@ const scenarios = [
     },
   },
   {
-    name: 'labeled event does not remove label even when enabled',
+    name: 'labeled event removes label and blocks when enabled',
     eventName: 'pull_request_target',
     fixtureFile: 'fork-with-default-label-labeled.json',
     inputRequireReapproval: 'true',
-    expectedExitCode: 0,
+    expectedExitCode: 1,
     expectedOutputParts: [
-      'Pull request has the "safe to test" label, skipping.',
+      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
+      'Pull request does not have the "safe to test" label.',
     ],
+    expectedApiCall: {
+      method: 'DELETE',
+      path: '/repos/base-owner/repo/issues/42/labels/safe%20to%20test',
+      authorization: 'token test-token',
+      statusCode: 204,
+    },
   },
   {
     name: 'synchronize with missing integration permission fails clearly',

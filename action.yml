@@ -6,9 +6,9 @@ inputs:
     required: false
     default: 'safe to test'
   require-reapproval:
-    description: 'When true, remove the label on synchronize events so maintainers must re-approve changes'
+    description: 'When true, remove the label on every workflow run to force re-review of new commits. When you set this to `false`, an attacker could push malicious code after you have assigned the label to mark the code as safe.'
     required: false
-    default: 'false'
+    default: 'true'
   repo-token:
     description: 'The GitHub token used to manage labels when require-reapproval is true'
     required: false
