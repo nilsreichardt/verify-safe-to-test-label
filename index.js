@@ -75,7 +75,7 @@ function normalizeLabel(inputLabel) {
 
 function toBoolean(inputValue) {
     if (typeof inputValue !== 'string') {
-        return false;
+        return true;
     }
 
     return inputValue.trim().toLowerCase() === 'true';
