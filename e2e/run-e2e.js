@@ -62,41 +62,42 @@ for (const scenario of scenarios) {
   const payload = fs.readFileSync(fixturePath, 'utf8');
   const { eventPath, tempDir } = writeEventPayload(payload);
 
-  const child = spawnSync(process.execPath, [ENTRYPOINT], {
-    cwd: ROOT,
-    env: {
-      ...process.env,
-      GITHUB_ACTIONS: 'true',
-      GITHUB_EVENT_NAME: scenario.eventName,
-      GITHUB_EVENT_PATH: eventPath,
-      GITHUB_REPOSITORY: 'base-owner/repo',
-      INPUT_LABEL: scenario.inputLabel || '',
-    },
-    encoding: 'utf8',
-  });
+  try {
+    const child = spawnSync(process.execPath, [ENTRYPOINT], {
+      cwd: ROOT,
+      env: {
+        ...process.env,
+        GITHUB_ACTIONS: 'true',
+        GITHUB_EVENT_NAME: scenario.eventName,
+        GITHUB_EVENT_PATH: eventPath,
+        GITHUB_REPOSITORY: 'base-owner/repo',
+        INPUT_LABEL: scenario.inputLabel || '',
+      },
+      encoding: 'utf8',
+    });
 
-  const output = `${child.stdout || ''}\n${child.stderr || ''}`;
-  const exitCode = child.status == null ? 1 : child.status;
+    const output = `${child.stdout || ''}\n${child.stderr || ''}`;
+    const exitCode = child.status == null ? 1 : child.status;
 
-  const codeMatches = exitCode === scenario.expectedExitCode;
-  const outputMatches = scenario.expectedOutputParts.every((part) => output.includes(part));
+    const codeMatches = exitCode === scenario.expectedExitCode;
+    const outputMatches = scenario.expectedOutputParts.every((part) => output.includes(part));
 
-  if (codeMatches && outputMatches) {
-    console.log(`PASS: ${scenario.name}`);
-  } else {
-    failed += 1;
-    console.error(`FAIL: ${scenario.name}`);
-    console.error(`Expected exit code: ${scenario.expectedExitCode}, actual: ${exitCode}`);
-    console.error('Expected output to include:');
-    for (const part of scenario.expectedOutputParts) {
-      console.error(`  - ${part}`);
+    if (codeMatches && outputMatches) {
+      console.log(`PASS: ${scenario.name}`);
+    } else {
+      failed += 1;
+      console.error(`FAIL: ${scenario.name}`);
+      console.error(`Expected exit code: ${scenario.expectedExitCode}, actual: ${exitCode}`);
+      console.error('Expected output to include:');
+      for (const part of scenario.expectedOutputParts) {
+        console.error(`  - ${part}`);
+      }
+      console.error('Actual combined output:');
+      console.error(output.trim());
     }
-    console.error('Actual combined output:');
-    console.error(output.trim());
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
-
-  fs.unlinkSync(eventPath);
-  fs.rmdirSync(tempDir);
 }
 
 if (failed > 0) {
