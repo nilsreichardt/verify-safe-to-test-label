@@ -150,7 +150,7 @@ describe('verify-safe-to-test-label', () => {
         const core = createCoreMock();
 
         await run({ core });
-        expect(core.setFailed).not.toHaveBeenCalled();
+        expect(core.setFailed).not.toHaveBeenCalledWith('Event payload does not include a pull_request object.');
     });
 
     test('normalizes missing github.context to empty object', async () => {
