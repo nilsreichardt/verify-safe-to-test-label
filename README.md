@@ -2,7 +2,7 @@
 
 <a href="https://codecov.io/gh/nilsreichardt/verify-safe-to-test-label"><img src="https://codecov.io/gh/nilsreichardt/verify-safe-to-test-label/branch/main/graph/badge.svg" alt="codecov"></a>
 
-A GitHub Action that verifies if the `safe to test` label is assigned to a Pull Request before running sensitive steps.
+A GitHub Action that verifies if the `safe to test` label is assigned to a Pull Request before running sensitive steps, and can optionally remove it on new commits.
 
 If you are using `pull_request_target` in your workflows, there is a high probability your repository is vulnerable to secret exfiltration. This action acts as a manual "Gatekeeper" to protect your infrastructure.
 
@@ -10,7 +10,7 @@ If you are using `pull_request_target` in your workflows, there is a high probab
 
 1.  Add the `labeled` type to your `pull_request_target` trigger.
 2.  Add `nilsreichardt/verify-safe-to-test-label@v1` to the start of your job.
-3.  **Highly Recommended:** Pair this with [remove-safe-to-test-label](https://github.com/nilsreichardt/remove-safe-to-test-label) to prevent "Bait & Switch" attacks (where an attacker pushes malicious code _after_ you've already approved the PR).
+3.  Enable `require-reapproval: true` to prevent "Bait & Switch" attacks (where an attacker pushes malicious code _after_ you've already approved the PR).
 
 ```yaml
 on:
@@ -21,23 +21,18 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     permissions:
-      # Required for remove-safe-to-test-label
+      # Required when require-reapproval=true
       contents: read
       pull-requests: write
     steps:
-      # 1. Reset the gate: Remove label if this is a new commit (synchronize)
-      - name: Remove "safe to test" label, if PR is from a fork
-        uses: nilsreichardt/remove-safe-to-test-label@v1
-        with:
-          label: "safe to test" # optional, default is "safe to test"
-
-      # 2. Check the gate: Stop here if the label isn't present
+      # 1. Check the gate (and optionally reset it on synchronize)
       - name: Ensure PR has "safe to test" label, if PR is from a fork
         uses: nilsreichardt/verify-safe-to-test-label@v1
         with:
           label: "safe to test" # optional, default is "safe to test"
+          require-reapproval: true # optional, removes label on synchronize to force re-review
 
-      # 3. Securely run your tests
+      # 2. Securely run your tests
       - name: Checkout PR code
         uses: actions/checkout@v4
         with:
@@ -84,9 +79,5 @@ The **Label Gate** solution allows you to keep `pull_request_target` while addin
 | Name    | Description                                      | Default        |
 | ------- | ------------------------------------------------ | -------------- |
 | `label` | The name of the label required to pass the check | `safe to test` |
-
-## Recommended Pairings
-
-To ensure a complete security loop, use this in conjunction with:
-
-- **[remove-safe-to-test-label](https://github.com/nilsreichardt/remove-safe-to-test-label):** Automatically strips the label when new commits are pushed, forcing a re-review of any new code changes.
+| `require-reapproval` | Remove the label on `synchronize` events before verification | `false` |
+| `repo-token` | Token used to remove labels when `require-reapproval=true`. Requires `pull-requests: write` | `github.token` |

@@ -5,6 +5,14 @@ inputs:
     description: 'The name of the label required to pass the check'
     required: false
     default: 'safe to test'
+  require-reapproval:
+    description: 'When true, remove the label on synchronize events so maintainers must re-approve changes'
+    required: false
+    default: 'false'
+  repo-token:
+    description: 'The GitHub token used to manage labels when require-reapproval is true'
+    required: false
+    default: ${{ github.token }}
 runs:
   using: 'node24'
   main: 'index.js'

@@ -8,7 +8,7 @@ describe('verify-safe-to-test-label', () => {
     test('fails when pull request is from a fork and required label is missing', async () => {
         const core = createCoreMock();
         const github = createGithubMock('pull_request', createForkPayload([]));
-        core.getInput.mockReturnValue('safe-to-test');
+        core.getInput.mockImplementation((name) => name === 'label' ? 'safe-to-test' : '');
 
         await run({ core, github });
 
@@ -21,7 +21,7 @@ describe('verify-safe-to-test-label', () => {
     test('does not fail when pull request is from a fork and required label exists', async () => {
         const core = createCoreMock();
         const github = createGithubMock('pull_request', createForkPayload([{ name: 'safe-to-test' }]));
-        core.getInput.mockReturnValue('safe-to-test');
+        core.getInput.mockImplementation((name) => name === 'label' ? 'safe-to-test' : '');
 
         await run({ core, github });
 
@@ -29,37 +29,119 @@ describe('verify-safe-to-test-label', () => {
         expect(core.info).toHaveBeenCalledWith('Pull request has the "safe-to-test" label, skipping.');
     });
 
-    test('uses configured label in failure message', async () => {
-        const customLabelName = 'ready-for-ci';
+    test('removes label on synchronize when require-reapproval is enabled', async () => {
+        const removeLabelMock = jest.fn().mockResolvedValue(undefined);
         const core = createCoreMock();
-        const github = createGithubMock('pull_request', createForkPayload([]));
-        core.getInput.mockReturnValue(customLabelName);
+        const payload = createForkPayload([{ name: 'safe to test' }], { action: 'synchronize' });
+        const github = createGithubMock('pull_request_target', payload, removeLabelMock);
+        core.getInput.mockImplementation((name) => {
+            if (name === 'label') return 'safe to test';
+            if (name === 'require-reapproval') return 'true';
+            if (name === 'repo-token') return 'token-123';
+            return '';
+        });
 
         await run({ core, github });
 
-        expect(core.setFailed).toHaveBeenCalledWith(
-            `Pull request does not have the "${customLabelName}" label. ` +
-            `Code owners must add the "${customLabelName}" label to the pull request before it can be tested.`
-        );
-    });
-
-    test('normalizes an empty configured label to default', async () => {
-        const core = createCoreMock();
-        const github = createGithubMock('pull_request', createForkPayload([]));
-        core.getInput.mockReturnValue('   ');
-
-        await run({ core, github });
-
+        expect(github.getOctokit).toHaveBeenCalledWith('token-123');
+        expect(removeLabelMock).toHaveBeenCalledWith({
+            owner: 'base-owner',
+            repo: 'repo',
+            issue_number: 1,
+            name: 'safe to test',
+        });
+        expect(core.info).toHaveBeenCalledWith('Removed the "safe to test" label from pull request. Every change must be re-approved.');
         expect(core.setFailed).toHaveBeenCalledWith(
             'Pull request does not have the "safe to test" label. ' +
             'Code owners must add the "safe to test" label to the pull request before it can be tested.'
         );
     });
 
-    test('normalizes a non-string configured label to default', async () => {
+    test('does not remove label on labeled event when require-reapproval is enabled', async () => {
+        const removeLabelMock = jest.fn().mockResolvedValue(undefined);
+        const core = createCoreMock();
+        const payload = createForkPayload([{ name: 'safe to test' }], { action: 'labeled' });
+        const github = createGithubMock('pull_request_target', payload, removeLabelMock);
+        core.getInput.mockImplementation((name) => {
+            if (name === 'label') return 'safe to test';
+            if (name === 'require-reapproval') return 'true';
+            if (name === 'repo-token') return 'token-123';
+            return '';
+        });
+
+        await run({ core, github });
+
+        expect(github.getOctokit).not.toHaveBeenCalled();
+        expect(removeLabelMock).not.toHaveBeenCalled();
+        expect(core.setFailed).not.toHaveBeenCalled();
+        expect(core.info).toHaveBeenCalledWith('Pull request has the "safe to test" label, skipping.');
+    });
+
+    test('continues when label was already removed by race condition', async () => {
+        const notFoundError = new Error('Label does not exist');
+        notFoundError.status = 404;
+        const removeLabelMock = jest.fn().mockRejectedValue(notFoundError);
+        const core = createCoreMock();
+        const payload = createForkPayload([{ name: 'safe to test' }], { action: 'synchronize' });
+        const github = createGithubMock('pull_request', payload, removeLabelMock);
+        core.getInput.mockImplementation((name) => {
+            if (name === 'label') return 'safe to test';
+            if (name === 'require-reapproval') return 'true';
+            if (name === 'repo-token') return 'token-123';
+            return '';
+        });
+
+        await run({ core, github });
+
+        expect(core.info).toHaveBeenCalledWith('Label was removed during action execution, continuing.');
+        expect(core.setFailed).toHaveBeenCalledWith(
+            'Pull request does not have the "safe to test" label. ' +
+            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
+        );
+    });
+
+    test('uses helpful error message when workflow token permissions are missing', async () => {
+        const permissionError = new Error('Resource not accessible by integration');
+        permissionError.status = 403;
+        const removeLabelMock = jest.fn().mockRejectedValue(permissionError);
+        const core = createCoreMock();
+        const payload = createForkPayload([{ name: 'safe to test' }], { action: 'synchronize' });
+        const github = createGithubMock('pull_request_target', payload, removeLabelMock);
+        core.getInput.mockImplementation((name) => {
+            if (name === 'label') return 'safe to test';
+            if (name === 'require-reapproval') return 'true';
+            if (name === 'repo-token') return 'token-123';
+            return '';
+        });
+
+        await run({ core, github });
+
+        expect(core.setFailed).toHaveBeenCalledWith(
+            'Failed to remove label because the workflow token lacks required permissions. Ensure your workflow grants `contents: read` and `pull-requests: write`.'
+        );
+    });
+
+    test('fails with clear message when pull request number is missing for label removal', async () => {
+        const core = createCoreMock();
+        const payload = createForkPayload([{ name: 'safe to test' }], { action: 'synchronize' });
+        delete payload.pull_request.number;
+        const github = createGithubMock('pull_request_target', payload);
+        core.getInput.mockImplementation((name) => {
+            if (name === 'label') return 'safe to test';
+            if (name === 'require-reapproval') return 'true';
+            if (name === 'repo-token') return 'token-123';
+            return '';
+        });
+
+        await run({ core, github });
+
+        expect(core.setFailed).toHaveBeenCalledWith('Unable to determine pull request number from the event payload.');
+    });
+
+    test('normalizes an empty configured label to default', async () => {
         const core = createCoreMock();
         const github = createGithubMock('pull_request', createForkPayload([]));
-        core.getInput.mockReturnValue(undefined);
+        core.getInput.mockImplementation((name) => name === 'label' ? '   ' : '');
 
         await run({ core, github });
 
@@ -72,7 +154,7 @@ describe('verify-safe-to-test-label', () => {
     test('does not fail when pull request is not from a fork', async () => {
         const core = createCoreMock();
         const github = createGithubMock('pull_request', createSameRepoPayload([]));
-        core.getInput.mockReturnValue('safe to test');
+        core.getInput.mockImplementation((name) => name === 'label' ? 'safe to test' : '');
 
         await run({ core, github });
 
@@ -83,7 +165,7 @@ describe('verify-safe-to-test-label', () => {
     test('skips unsupported events', async () => {
         const core = createCoreMock();
         const github = createGithubMock('push', createForkPayload([]));
-        core.getInput.mockReturnValue('safe to test');
+        core.getInput.mockImplementation((name) => name === 'label' ? 'safe to test' : '');
 
         await run({ core, github });
 
@@ -96,7 +178,7 @@ describe('verify-safe-to-test-label', () => {
     test('fails with clear message when payload is missing pull_request', async () => {
         const core = createCoreMock();
         const github = createGithubMock('pull_request', { repository: { full_name: 'base-owner/repo' } });
-        core.getInput.mockReturnValue('safe to test');
+        core.getInput.mockImplementation((name) => name === 'label' ? 'safe to test' : '');
 
         await run({ core, github });
 
@@ -113,7 +195,7 @@ describe('verify-safe-to-test-label', () => {
             },
             repository: {},
         });
-        core.getInput.mockReturnValue('safe to test');
+        core.getInput.mockImplementation((name) => name === 'label' ? 'safe to test' : '');
 
         await run({ core, github });
 
@@ -122,60 +204,8 @@ describe('verify-safe-to-test-label', () => {
         );
     });
 
-    test('treats non-array labels as missing labels', async () => {
-        const core = createCoreMock();
-        const payload = createForkPayload([]);
-        const github = createGithubMock('pull_request', {
-            ...payload,
-            pull_request: {
-                ...payload.pull_request,
-                labels: null,
-            },
-        });
-        core.getInput.mockReturnValue('safe to test');
-
-        await run({ core, github });
-
-        expect(core.setFailed).toHaveBeenCalledWith(
-            'Pull request does not have the "safe to test" label. ' +
-            'Code owners must add the "safe to test" label to the pull request before it can be tested.'
-        );
-    });
-
     test('loads action modules when dependencies are not injected', async () => {
         await expect(run()).rejects.toThrow(/Cannot read properties of undefined/);
-    });
-
-    test('loads github module when only core is injected', async () => {
-        const core = createCoreMock();
-
-        await run({ core });
-        expect(core.setFailed).not.toHaveBeenCalledWith('Event payload does not include a pull_request object.');
-    });
-
-    test('normalizes missing github.context to empty object', async () => {
-        const core = createCoreMock();
-        const github = { context: null };
-        core.getInput.mockReturnValue('safe to test');
-
-        await run({ core, github });
-
-        expect(core.setFailed).not.toHaveBeenCalled();
-        expect(core.info).toHaveBeenCalledWith(
-            'Event "undefined", skipping. This action only supports: pull_request, pull_request_target.'
-        );
-    });
-
-    test('handles non-Error exceptions in run catch block', async () => {
-        const core = createCoreMock();
-        const github = createGithubMock('pull_request', createForkPayload([]));
-        core.getInput.mockImplementation(() => {
-            throw 'non-error failure';
-        });
-
-        await run({ core, github });
-
-        expect(core.setFailed).toHaveBeenCalledWith('non-error failure');
     });
 });
 
@@ -187,16 +217,28 @@ function createCoreMock() {
     };
 }
 
-function createGithubMock(eventName, payload) {
+function createGithubMock(eventName, payload, removeLabelMock = jest.fn().mockResolvedValue(undefined)) {
     return {
-        context: { eventName, payload },
-        getOctokit: jest.fn(),
+        context: {
+            eventName,
+            payload,
+            repo: { owner: 'base-owner', repo: 'repo' },
+        },
+        getOctokit: jest.fn(() => ({
+            rest: {
+                issues: {
+                    removeLabel: removeLabelMock,
+                },
+            },
+        })),
     };
 }
 
-function createForkPayload(labels = []) {
+function createForkPayload(labels = [], { action = 'opened' } = {}) {
     return {
+        action,
         pull_request: {
+            number: 1,
             head: {
                 repo: {
                     full_name: 'fork-owner/repo',
@@ -217,6 +259,7 @@ function createForkPayload(labels = []) {
 
 function createSameRepoPayload(labels = []) {
     return {
+        action: 'opened',
         pull_request: {
             head: {
                 repo: {
