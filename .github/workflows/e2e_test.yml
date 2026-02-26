@@ -2,7 +2,7 @@ name: e2e-test
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
 
 permissions: {}
 
@@ -10,5 +10,9 @@ jobs:
   e2e-test:
     runs-on: ubuntu-latest
     steps:
-      # Replace @main with the commit hash of the latest commit on the pull request branch
-      - uses: nilsreichardt/verify-safe-to-test-label@main
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run test:e2e

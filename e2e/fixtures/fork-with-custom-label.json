@@ -1,0 +1,20 @@
+{
+  "pull_request": {
+    "head": {
+      "repo": {
+        "full_name": "fork-owner/repo"
+      }
+    },
+    "base": {
+      "repo": {
+        "full_name": "base-owner/repo"
+      }
+    },
+    "labels": [
+      { "name": "safe-to-test" }
+    ]
+  },
+  "repository": {
+    "full_name": "base-owner/repo"
+  }
+}
