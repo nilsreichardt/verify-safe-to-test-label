@@ -2,9 +2,9 @@
 
 <a href="https://codecov.io/gh/nilsreichardt/verify-safe-to-test-label"><img src="https://codecov.io/gh/nilsreichardt/verify-safe-to-test-label/branch/main/graph/badge.svg" alt="codecov"></a>
 
-A GitHub Action that verifies if the `safe to test` label is assigned to a Pull Request before running sensitive steps, and can optionally remove it on new commits.
+A GitHub Action that verifies if the `safe to test` label is assigned to a Pull Request before running sensitive steps. By default, every new workflow run requires a new assignment of the label to prevent an attacker from pushing malicious code after you marked the code as safe with the label.
 
-If you are using `pull_request_target` in your workflows, there is a high probability your repository is vulnerable to secret exfiltration. This action acts as a manual "Gatekeeper" to protect your infrastructure.
+If you are using `pull_request_target` in your workflows, there is a high probability your repository is [vulnerable to secret exfiltration](https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/). This action acts as a manual "Gatekeeper" to protect your infrastructure.
 
 ## Quick Start
 
