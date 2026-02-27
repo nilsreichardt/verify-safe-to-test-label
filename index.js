@@ -116,7 +116,7 @@ function getFailureMessage(error) {
 
 function getRepositoryNames(payload, pullRequest) {
     const headRepoFullName = pullRequest?.head?.repo?.full_name;
-    const baseRepoFullName = payload?.repository?.full_name || pullRequest?.base?.repo?.full_name;
+    const baseRepoFullName = payload?.repository?.full_name ?? pullRequest?.base?.repo?.full_name;
 
     if (!headRepoFullName || !baseRepoFullName) {
         throw new Error('Unable to determine head/base repository names from the event payload.');
