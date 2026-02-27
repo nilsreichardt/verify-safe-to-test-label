@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test:unit && npm run test:e2e",
-    "test:unit": "jest",
+    "test": "jest",
     "test:coverage": "jest --coverage --runInBand",
     "test:e2e": "node e2e/run-e2e.js"
   },

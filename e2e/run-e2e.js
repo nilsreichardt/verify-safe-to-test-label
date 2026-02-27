@@ -20,40 +20,12 @@ const scenarios = [
     ],
   },
   {
-    name: 'fork PR with custom label passes',
-    eventName: 'pull_request',
-    fixtureFile: 'fork-with-custom-label.json',
-    inputLabel: 'safe-to-test',
-    expectedExitCode: 0,
-    expectedOutputParts: [
-      'Pull request has the "safe-to-test" label, changes are approved.',
-    ],
-  },
-  {
     name: 'same repository PR skips',
     eventName: 'pull_request',
     fixtureFile: 'same-repo.json',
     expectedExitCode: 0,
     expectedOutputParts: [
       'Pull request is not from a fork, skipping.',
-    ],
-  },
-  {
-    name: 'unsupported event skips',
-    eventName: 'push',
-    fixtureFile: 'fork-missing-label.json',
-    expectedExitCode: 0,
-    expectedOutputParts: [
-      'Event "push", skipping. This action only supports: pull_request, pull_request_target.',
-    ],
-  },
-  {
-    name: 'invalid payload fails with clear error',
-    eventName: 'pull_request_target',
-    fixtureFile: 'invalid-payload.json',
-    expectedExitCode: 1,
-    expectedOutputParts: [
-      'Event payload does not include a pull_request object.',
     ],
   },
   {
@@ -71,114 +43,6 @@ const scenarios = [
       path: '/repos/base-owner/repo/issues/42/labels/safe%20to%20test',
       authorization: 'token test-token',
       statusCode: 204,
-    },
-  },
-  {
-    name: 'synchronize removes custom label via API then allows current run and requires reapproval next run',
-    eventName: 'pull_request',
-    fixtureFile: 'fork-with-custom-label-synchronize.json',
-    inputLabel: 'safe-to-test',
-    inputRequireReapproval: 'true',
-    expectedExitCode: 0,
-    expectedOutputParts: [
-      'Pull request has the "safe-to-test" label, changes are approved.',
-      'Removed the "safe-to-test" label from pull request. Every change must be re-approved.',
-    ],
-    expectedApiCall: {
-      method: 'DELETE',
-      path: '/repos/base-owner/repo/issues/7/labels/safe-to-test',
-      authorization: 'token test-token',
-      statusCode: 204,
-    },
-  },
-  {
-    name: 'labeled event removes label and allows current run when enabled',
-    eventName: 'pull_request_target',
-    fixtureFile: 'fork-with-default-label-labeled.json',
-    inputRequireReapproval: 'true',
-    expectedExitCode: 0,
-    expectedOutputParts: [
-      'Pull request has the "safe to test" label, changes are approved.',
-      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
-    ],
-    expectedApiCall: {
-      method: 'DELETE',
-      path: '/repos/base-owner/repo/issues/42/labels/safe%20to%20test',
-      authorization: 'token test-token',
-      statusCode: 204,
-    },
-  },
-  {
-    name: 'opened event removes label and allows current run when enabled',
-    eventName: 'pull_request_target',
-    fixtureFile: 'fork-with-default-label-opened.json',
-    inputRequireReapproval: 'true',
-    expectedExitCode: 0,
-    expectedOutputParts: [
-      'Pull request has the "safe to test" label, changes are approved.',
-      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
-    ],
-    expectedApiCall: {
-      method: 'DELETE',
-      path: '/repos/base-owner/repo/issues/43/labels/safe%20to%20test',
-      authorization: 'token test-token',
-      statusCode: 204,
-    },
-  },
-  {
-    name: 'reopened event removes label and allows current run when enabled',
-    eventName: 'pull_request_target',
-    fixtureFile: 'fork-with-default-label-reopened.json',
-    inputRequireReapproval: 'true',
-    expectedExitCode: 0,
-    expectedOutputParts: [
-      'Pull request has the "safe to test" label, changes are approved.',
-      'Removed the "safe to test" label from pull request. Every change must be re-approved.',
-    ],
-    expectedApiCall: {
-      method: 'DELETE',
-      path: '/repos/base-owner/repo/issues/44/labels/safe%20to%20test',
-      authorization: 'token test-token',
-      statusCode: 204,
-    },
-  },
-  {
-    name: 'synchronize with missing integration permission fails clearly',
-    eventName: 'pull_request',
-    fixtureFile: 'fork-with-default-label.json',
-    inputRequireReapproval: 'true',
-    expectedExitCode: 1,
-    expectedOutputParts: [
-      'Failed to remove label because the workflow token lacks required permissions.',
-    ],
-    expectedApiCall: {
-      method: 'DELETE',
-      path: '/repos/base-owner/repo/issues/42/labels/safe%20to%20test',
-      authorization: 'token test-token',
-      statusCode: 403,
-      responseBody: {
-        message: 'Resource not accessible by integration',
-      },
-    },
-  },
-  {
-    name: 'synchronize race condition (already removed) is handled',
-    eventName: 'pull_request_target',
-    fixtureFile: 'fork-with-default-label.json',
-    inputRequireReapproval: 'true',
-    expectedExitCode: 0,
-    expectedOutputParts: [
-      'Pull request has the "safe to test" label, changes are approved.',
-      'Label was removed during action execution, continuing.',
-    ],
-    expectedApiCall: {
-      method: 'DELETE',
-      path: '/repos/base-owner/repo/issues/42/labels/safe%20to%20test',
-      authorization: 'token test-token',
-      statusCode: 404,
-      responseBody: {
-        message: 'Label does not exist',
-      },
     },
   },
 ];

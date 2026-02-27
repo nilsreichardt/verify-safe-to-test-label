@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened, labeled]
 
 jobs:
-  e2e-test:
+  start-action:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -13,3 +13,11 @@ jobs:
       # Use the action from the PR branch (current checkout). Used to check that
       # the action starts correctly (e.g. no dependencies issues, etc.).
       - uses: ./
+
+  run-e2e:
+    needs: start-action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - run: npm ci
+      - run: npm run test:e2e
