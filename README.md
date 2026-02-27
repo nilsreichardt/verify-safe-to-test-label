@@ -100,7 +100,7 @@ jobs:
 > 2.  You check out code from the **head** (the fork).
 > 3.  You execute scripts from that code (e.g., `npm install`, `npm test`, `make`, `python setup.py`).
 
-**A note on legacy repositories:** If your repository was created [before February 2023](https://github.blog/changelog/2023-02-02-github-actions-updating-the-default-github_token-permissions-to-read-only/), your `GITHUB_TOKEN` likely has **write-permissions** by default. An attacker could not only steal secrets but also push malicious commits directly to your `main` branch.
+**A note on legacy repositories:** If your repository was created [before February 2023](https://github.blog/changelog/2023-02-02-github-actions-updating-the-default-github_token-permissions-to-read-only/), your `GITHUB_TOKEN` likely has **write-permissions** by default. An attacker could not only steal secrets but also push malicious commits directly to your `main` branch. You can verify this setting as follows: Settings > Actions > General > Workflow permissions.
 
 ### The Solution: The "Label Gate"
 
