@@ -77,11 +77,8 @@ function normalizeLabel(inputLabel) {
     return trimmed.length > 0 ? trimmed : CONFIG.defaultLabel;
 }
 
-function toBoolean(inputValue) {
-    if (typeof inputValue !== 'string') {
-        return true;
-    }
-
+function toBoolean(inputValue, defaultValue = true) {
+    if (typeof inputValue !== 'string') return defaultValue;
     return inputValue.trim().toLowerCase() === 'true';
 }
 
