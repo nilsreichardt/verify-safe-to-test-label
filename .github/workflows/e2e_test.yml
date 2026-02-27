@@ -2,17 +2,14 @@ name: e2e-test
 
 on:
   pull_request:
-  workflow_dispatch:
-
-permissions: {}
+    types: [opened, synchronize, reopened, labeled]
 
 jobs:
   e2e-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
-        with:
-          node-version: 24
-      - run: npm ci
-      - run: npm run test:e2e
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      # Use the action from the PR branch (current checkout). Used to check that
+      # the action starts correctly (e.g. no dependencies issues, etc.).
+      - uses: ./
