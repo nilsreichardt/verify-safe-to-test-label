@@ -78,7 +78,7 @@ async function removeLabelWhenRequired(core, github, context, labelName) {
             });
             core.info(`Removed the "${labelName}" label from pull request. Every change must be re-approved. Next workflow run requires the "${labelName}" label again.`);
         } catch (error) {
-            const { pullRequest } = getPayloadAndPr(context);
+            const pullRequest = context.payload.pull_request;
             if (isLabelAlreadyGoneError(error)) {
                 pullRequest.labels = Array.isArray(pullRequest.labels)
                     ? pullRequest.labels.filter((label) => !(isObject(label) && label.name === labelName))
@@ -105,10 +105,6 @@ function toBoolean(inputValue, defaultValue = true) {
     return inputValue.trim().toLowerCase() === 'true';
 }
 
-function getPayloadAndPr(context) {
-    return { payload: context.payload, pullRequest: context.payload.pull_request };
-}
-
 function isLabelAlreadyGoneError(error) {
     return error?.message === 'Label does not exist' || error?.status === 404;
 }
@@ -128,7 +124,8 @@ function getFailureMessage(error) {
 }
 
 function getRepositoryNames(context) {
-    const { payload, pullRequest } = getPayloadAndPr(context);
+    const payload = context.payload;
+    const pullRequest = payload.pull_request;
     const headRepoFullName = pullRequest?.head?.repo?.full_name;
     const baseRepoFullName = payload?.repository?.full_name ?? pullRequest?.base?.repo?.full_name;
 
@@ -150,7 +147,8 @@ function checkLabel(context, labelName) {
 }
 
 async function removeLabel({ context, github, token, labelName }) {
-    const { payload, pullRequest } = getPayloadAndPr(context);
+    const { payload } = context;
+    const pullRequest = payload.pull_request;
     const octokit = github.getOctokit(token);
     const { owner, repo } = getOwnerAndRepo(context, payload);
     const issueNumber = pullRequest?.number;
