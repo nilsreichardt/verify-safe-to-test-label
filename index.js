@@ -26,11 +26,11 @@ async function run(modules = {}) {
         }
 
         const safeToTestLabelName = normalizeLabel(core.getInput('label'));
-        const shouldRequireReapproval = toBoolean(core.getInput('require-reapproval'));
+        const requiresReapproval = toBoolean(core.getInput('require-reapproval'));
 
-        const hasLabel = checkLabel(pullRequest, safeToTestLabelName);
+        const labelIsPresent = checkLabel(pullRequest, safeToTestLabelName);
 
-        if (!hasLabel) {
+        if (!labelIsPresent) {
             core.setFailed(
                 `Pull request does not have the "${safeToTestLabelName}" label. ` +
                 `Code owners must add the "${safeToTestLabelName}" label to the pull request before the workflow can run.`
@@ -40,7 +40,7 @@ async function run(modules = {}) {
 
         core.info(`Pull request has the "${safeToTestLabelName}" label, changes are approved.`);
 
-        if (shouldRequireReapproval) {
+        if (requiresReapproval) {
             const token = core.getInput('repo-token');
             try {
                 await removeLabel({
