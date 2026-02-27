@@ -1,5 +1,7 @@
-const ALLOWED_EVENTS = ['pull_request', 'pull_request_target'];
-const DEFAULT_LABEL = 'safe to test';
+const CONFIG = {
+    allowedEvents: ['pull_request', 'pull_request_target'],
+    defaultLabel: 'safe to test',
+};
 
 async function run(modules = {}) {
     let core = modules.core;
@@ -10,8 +12,8 @@ async function run(modules = {}) {
         github = github || await import('@actions/github');
 
         const context = github.context || {};
-        if (!ALLOWED_EVENTS.includes(context.eventName)) {
-            core.info(`Event "${context.eventName}", skipping. This action only supports: ${ALLOWED_EVENTS.join(', ')}.`);
+        if (!CONFIG.allowedEvents.includes(context.eventName)) {
+            core.info(`Event "${context.eventName}", skipping. This action only supports: ${CONFIG.allowedEvents.join(', ')}.`);
             return;
         }
 
@@ -68,11 +70,11 @@ async function run(modules = {}) {
 
 function normalizeLabel(inputLabel) {
     if (typeof inputLabel !== 'string') {
-        return DEFAULT_LABEL;
+        return CONFIG.defaultLabel;
     }
 
     const trimmed = inputLabel.trim();
-    return trimmed.length > 0 ? trimmed : DEFAULT_LABEL;
+    return trimmed.length > 0 ? trimmed : CONFIG.defaultLabel;
 }
 
 function toBoolean(inputValue) {
