@@ -4,13 +4,9 @@ const CONFIG = {
 };
 
 async function run(modules = {}) {
-    let core = modules.core;
-    let github = modules.github;
+    const { core, github } = await resolveModules(modules);
 
     try {
-        core = core || await import('@actions/core');
-        github = github || await import('@actions/github');
-
         const context = github.context || {};
         if (!CONFIG.allowedEvents.includes(context.eventName)) {
             core.info(`Event "${context.eventName}", skipping. This action only supports: ${CONFIG.allowedEvents.join(', ')}.`);
@@ -65,6 +61,12 @@ async function run(modules = {}) {
     } catch (error) {
         core.setFailed(getFailureMessage(error));
     }
+}
+
+async function resolveModules(modules) {
+    const core = modules.core || await import('@actions/core');
+    const github = modules.github || await import('@actions/github');
+    return { core, github };
 }
 
 function isForkPullRequest(context) {

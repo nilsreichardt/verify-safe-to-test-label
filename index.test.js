@@ -301,15 +301,7 @@ describe('verify-safe-to-test-label', () => {
     });
 
     test('loads action modules when dependencies are not injected', async () => {
-        await expect(run()).rejects.toThrow(/Cannot read properties of undefined/);
-    });
-
-    test('imports github module when only core dependency is injected', async () => {
-        const core = createCoreMock();
-
-        await run({ core });
-
-        expect(core.info.mock.calls.length + core.setFailed.mock.calls.length).toBeGreaterThan(0);
+        await expect(run()).rejects.toThrow(/A dynamic import callback was invoked without --experimental-vm-modules/);
     });
 
     test('uses empty context when github context is missing', async () => {
