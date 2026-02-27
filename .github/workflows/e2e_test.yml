@@ -1,4 +1,4 @@
-name: e2e-test
+name: e2e
 
 on:
   pull_request:
@@ -19,7 +19,7 @@ jobs:
       # the action starts correctly (e.g. no dependencies issues, etc.).
       - uses: ./
 
-  run-e2e:
+  test:
     needs: start-action
     runs-on: ubuntu-latest
     steps:
