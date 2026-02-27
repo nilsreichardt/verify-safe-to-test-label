@@ -15,8 +15,8 @@ async function run(modules = {}) {
             return;
         }
 
-        const { labelName, labelIsPresent } = enforceLabelPresence(core, context);
-        if (!labelIsPresent) return;
+        const { labelName, isLabelPresent } = failIfLabelIsNotPresent(core, context);
+        if (!isLabelPresent) return;
 
         core.info(`Pull request has the "${labelName}" label, changes are approved.`);
         await removeLabelWhenRequired(core, github, context, labelName);
@@ -52,17 +52,17 @@ function isForkPullRequest(context) {
     return headRepoFullName !== baseRepoFullName;
 }
 
-function enforceLabelPresence(core, context) {
+function failIfLabelIsNotPresent(core, context) {
     const labelName = normalizeLabel(core.getInput('label'));
-    const labelIsPresent = checkLabel(context, labelName);
-    if (!labelIsPresent) {
+    const isLabelPresent = checkLabel(context, labelName);
+    if (!isLabelPresent) {
         core.setFailed(
             `Pull request does not have the "${labelName}" label. ` +
             `Code owners must add the "${labelName}" label to the pull request before the workflow can run.`
         );
-        return { labelName: undefined, labelIsPresent: false };
+        return { labelName: undefined, isLabelPresent: false };
     }
-    return { labelName, labelIsPresent: true };
+    return { labelName, isLabelPresent: true };
 }
 
 async function removeLabelWhenRequired(core, github, context, labelName) {
