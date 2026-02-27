@@ -14,7 +14,7 @@ async function run(modules = {}) {
             core.info('Pull request is not from a fork, skipping.');
             return;
         }
-        
+
         const { labelName, labelIsPresent } = enforceLabelPresence(core, context);
         if (!labelIsPresent) return;
 
@@ -78,11 +78,7 @@ async function removeLabelWhenRequired(core, github, context, labelName) {
             });
             core.info(`Removed the "${labelName}" label from pull request. Every change must be re-approved. Next workflow run requires the "${labelName}" label again.`);
         } catch (error) {
-            const pullRequest = context.payload.pull_request;
             if (isLabelAlreadyGoneError(error)) {
-                pullRequest.labels = Array.isArray(pullRequest.labels)
-                    ? pullRequest.labels.filter((label) => !(isObject(label) && label.name === labelName))
-                    : pullRequest.labels;
                 core.info('Label was removed during action execution, continuing.');
             } else {
                 throw error;
