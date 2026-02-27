@@ -100,7 +100,7 @@ jobs:
 > 2.  You check out code from the **head** (the fork).
 > 3.  You execute scripts from that code (e.g., `npm install`, `npm test`, `make`, `python setup.py`).
 
-**A note on legacy repositories:** If your repository was created before February 2023, your `GITHUB_TOKEN` likely [has **write-permissions** by default](https://github.blog/changelog/2023-02-02-github-actions-updating-the-default-github_token-permissions-to-read-only/). An attacker could not only steal secrets but also push malicious commits directly to your `main` branch.
+**A note on legacy repositories:** If your repository was created [before February 2023](https://github.blog/changelog/2023-02-02-github-actions-updating-the-default-github_token-permissions-to-read-only/), your `GITHUB_TOKEN` likely has **write-permissions** by default. An attacker could not only steal secrets but also push malicious commits directly to your `main` branch.
 
 ### The Solution: The "Label Gate"
 
@@ -111,4 +111,5 @@ The **Label Gate** solution allows you to keep `pull_request_target` while addin
 1.  A contributor submits a PR.
 2.  The CI runs but **fails immediately** at the `verify` step.
 3.  A maintainer reviews the code. If it's safe, they add the `safe to test` label.
-4.  The maintainer (or contributor) re-runs the CI. Now the action passes, and secrets are exposed only to the code you've vetted.
+4.  After the label assignment, the workflow is re-triggered. Now the action passes, and secrets are exposed only to the code you've vetted.
+5.  By default, after the workflow run, the label is removed again to require a new assignment for the next workflow run.
