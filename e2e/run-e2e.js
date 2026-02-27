@@ -25,7 +25,7 @@ const scenarios = [
     fixtureFile: 'same-repo.json',
     expectedExitCode: 0,
     expectedOutputParts: [
-      'Pull request is not from a fork, skipping.',
+      'Pull request is not from a fork. Assuming the code is safe.',
     ],
   },
   {
