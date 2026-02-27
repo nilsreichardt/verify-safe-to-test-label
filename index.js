@@ -11,7 +11,7 @@ async function run(modules = {}) {
         if (!context) return;
 
         if (!isForkPullRequest(context)) {
-            core.info('Pull request is not from a fork, skipping.');
+            core.info('Pull request is not from a fork. Assuming the code is safe.');
             return;
         }
 

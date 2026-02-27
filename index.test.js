@@ -255,7 +255,7 @@ describe('verify-safe-to-test-label', () => {
         await run({ core, github });
 
         expect(core.setFailed).not.toHaveBeenCalled();
-        expect(core.info).toHaveBeenCalledWith('Pull request is not from a fork, skipping.');
+        expect(core.info).toHaveBeenCalledWith('Pull request is not from a fork. Assuming the code is safe.');
     });
 
     test('skips unsupported events', async () => {
