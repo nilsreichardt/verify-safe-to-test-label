@@ -25,8 +25,8 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     permissions:
-      # Required when require-reapproval=true
-      pull-requests: write
+      contents: read # Recommended for actions/checkout action, see https://github.com/actions/checkout?tab=readme-ov-file#recommended-permissions
+      pull-requests: write # Required when require-reapproval=true
     steps:
       # 1. Check the gate (and reset it on every workflow run when require-reapproval=true)
       # If the PR is not from a fork, the action will always pass and code is considered as safe to execute.

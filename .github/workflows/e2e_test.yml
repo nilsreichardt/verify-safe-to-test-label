@@ -10,7 +10,8 @@ permissions: {}
 jobs:
   start-action:
     permissions:
-      pull-requests: write
+      contents: read # Recommended for actions/checkout action, see https://github.com/actions/checkout?tab=readme-ov-file#recommended-permissions
+      pull-requests: write # Required for verify-safe-to-test-label action
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
