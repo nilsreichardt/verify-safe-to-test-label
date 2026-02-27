@@ -18,9 +18,8 @@ async function run(modules = {}) {
         }
 
         const { payload, pullRequest } = getPayloadAndPr(context);
-        const { headRepoFullName, baseRepoFullName } = getRepositoryNames(payload, pullRequest);
 
-        if (headRepoFullName === baseRepoFullName) {
+        if (!isForkPullRequest(context)) {
             core.info('Pull request is not from a fork, skipping.');
             return;
         }
@@ -66,6 +65,12 @@ async function run(modules = {}) {
     } catch (error) {
         core.setFailed(getFailureMessage(error));
     }
+}
+
+function isForkPullRequest(context) {
+    const { payload, pullRequest } = getPayloadAndPr(context);
+    const { headRepoFullName, baseRepoFullName } = getRepositoryNames(payload, pullRequest);
+    return headRepoFullName !== baseRepoFullName;
 }
 
 function normalizeLabel(inputLabel) {
