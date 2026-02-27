@@ -7,57 +7,19 @@ async function run(modules = {}) {
     const { core, github } = await resolveModules(modules);
 
     try {
-        const context = github.context || {};
-        if (!CONFIG.allowedEvents.includes(context.eventName)) {
-            core.info(`Event "${context.eventName}", skipping. This action only supports: ${CONFIG.allowedEvents.join(', ')}.`);
-            return;
-        }
-
-        const { payload, pullRequest } = getPayloadAndPr(context);
+        const context = resolveContext(core, github);
+        if (!context) return;
 
         if (!isForkPullRequest(context)) {
             core.info('Pull request is not from a fork, skipping.');
             return;
         }
+        
+        const { labelName, labelIsPresent } = enforceLabelPresence(core, context);
+        if (!labelIsPresent) return;
 
-        const safeToTestLabelName = normalizeLabel(core.getInput('label'));
-        const requiresReapproval = toBoolean(core.getInput('require-reapproval'));
-
-        const labelIsPresent = checkLabel(pullRequest, safeToTestLabelName);
-
-        if (!labelIsPresent) {
-            core.setFailed(
-                `Pull request does not have the "${safeToTestLabelName}" label. ` +
-                `Code owners must add the "${safeToTestLabelName}" label to the pull request before the workflow can run.`
-            );
-            return;
-        }
-
-        core.info(`Pull request has the "${safeToTestLabelName}" label, changes are approved.`);
-
-        if (requiresReapproval) {
-            const token = core.getInput('repo-token');
-            try {
-                await removeLabel({
-                    context,
-                    github,
-                    token,
-                    labelName: safeToTestLabelName,
-                    pullRequest,
-                    payload,
-                });
-                core.info(`Removed the "${safeToTestLabelName}" label from pull request. Every change must be re-approved. Next workflow run requires the "${safeToTestLabelName}" label again.`);
-            } catch (error) {
-                if (isLabelAlreadyGoneError(error)) {
-                    pullRequest.labels = Array.isArray(pullRequest.labels)
-                        ? pullRequest.labels.filter((label) => !(isObject(label) && label.name === safeToTestLabelName))
-                        : pullRequest.labels;
-                    core.info('Label was removed during action execution, continuing.');
-                } else {
-                    throw error;
-                }
-            }
-        }
+        core.info(`Pull request has the "${labelName}" label, changes are approved.`);
+        await removeLabelWhenRequired(core, github, context, labelName);
     } catch (error) {
         core.setFailed(getFailureMessage(error));
     }
@@ -69,10 +31,64 @@ async function resolveModules(modules) {
     return { core, github };
 }
 
+function resolveContext(core, github) {
+    const context = github.context || {};
+    if (!CONFIG.allowedEvents.includes(context.eventName)) {
+        core.info(`Event "${context.eventName}", skipping. This action only supports: ${CONFIG.allowedEvents.join(', ')}.`);
+        return null;
+    }
+
+
+    const payload = context.payload;
+    if (!isObject(payload) || !isObject(payload.pull_request)) {
+        throw new Error('Event payload does not include a pull_request object.');
+    }
+
+    return context;
+}
+
 function isForkPullRequest(context) {
-    const { payload, pullRequest } = getPayloadAndPr(context);
-    const { headRepoFullName, baseRepoFullName } = getRepositoryNames(payload, pullRequest);
+    const { headRepoFullName, baseRepoFullName } = getRepositoryNames(context);
     return headRepoFullName !== baseRepoFullName;
+}
+
+function enforceLabelPresence(core, context) {
+    const labelName = normalizeLabel(core.getInput('label'));
+    const labelIsPresent = checkLabel(context, labelName);
+    if (!labelIsPresent) {
+        core.setFailed(
+            `Pull request does not have the "${labelName}" label. ` +
+            `Code owners must add the "${labelName}" label to the pull request before the workflow can run.`
+        );
+        return { labelName: undefined, labelIsPresent: false };
+    }
+    return { labelName, labelIsPresent: true };
+}
+
+async function removeLabelWhenRequired(core, github, context, labelName) {
+    const requiresReapproval = toBoolean(core.getInput('require-reapproval'));
+    if (requiresReapproval) {
+        const token = core.getInput('repo-token');
+        try {
+            await removeLabel({
+                context,
+                github,
+                token,
+                labelName,
+            });
+            core.info(`Removed the "${labelName}" label from pull request. Every change must be re-approved. Next workflow run requires the "${labelName}" label again.`);
+        } catch (error) {
+            const { pullRequest } = getPayloadAndPr(context);
+            if (isLabelAlreadyGoneError(error)) {
+                pullRequest.labels = Array.isArray(pullRequest.labels)
+                    ? pullRequest.labels.filter((label) => !(isObject(label) && label.name === labelName))
+                    : pullRequest.labels;
+                core.info('Label was removed during action execution, continuing.');
+            } else {
+                throw error;
+            }
+        }
+    }
 }
 
 function normalizeLabel(inputLabel) {
@@ -90,14 +106,7 @@ function toBoolean(inputValue, defaultValue = true) {
 }
 
 function getPayloadAndPr(context) {
-    const payload = context?.payload;
-    const pullRequest = payload?.pull_request;
-
-    if (!isObject(payload) || !isObject(pullRequest)) {
-        throw new Error('Event payload does not include a pull_request object.');
-    }
-
-    return { payload, pullRequest };
+    return { payload: context.payload, pullRequest: context.payload.pull_request };
 }
 
 function isLabelAlreadyGoneError(error) {
@@ -118,7 +127,8 @@ function getFailureMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
 
-function getRepositoryNames(payload, pullRequest) {
+function getRepositoryNames(context) {
+    const { payload, pullRequest } = getPayloadAndPr(context);
     const headRepoFullName = pullRequest?.head?.repo?.full_name;
     const baseRepoFullName = payload?.repository?.full_name ?? pullRequest?.base?.repo?.full_name;
 
@@ -129,7 +139,9 @@ function getRepositoryNames(payload, pullRequest) {
     return { headRepoFullName, baseRepoFullName };
 }
 
-function checkLabel(pullRequest, labelName) {
+function checkLabel(context, labelName) {
+    const pullRequest = context.payload.pull_request;
+
     if (!Array.isArray(pullRequest.labels)) {
         return false;
     }
@@ -137,7 +149,8 @@ function checkLabel(pullRequest, labelName) {
     return pullRequest.labels.some((label) => isObject(label) && label.name === labelName);
 }
 
-async function removeLabel({ context, github, token, labelName, pullRequest, payload }) {
+async function removeLabel({ context, github, token, labelName }) {
+    const { payload, pullRequest } = getPayloadAndPr(context);
     const octokit = github.getOctokit(token);
     const { owner, repo } = getOwnerAndRepo(context, payload);
     const issueNumber = pullRequest?.number;
@@ -152,9 +165,6 @@ async function removeLabel({ context, github, token, labelName, pullRequest, pay
         issue_number: issueNumber,
         name: labelName,
     });
-
-    // Keep in-memory payload consistent so the verification step reflects the removal.
-    pullRequest.labels = pullRequest.labels.filter((label) => !(isObject(label) && label.name === labelName));
 }
 
 function getOwnerAndRepo(context, payload) {
