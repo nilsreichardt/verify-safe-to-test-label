@@ -4,10 +4,9 @@
 
 If you believe you have found a security vulnerability in **verify-safe-to-test-label**, please report it privately using [GitHub’s **“Report a vulnerability”** feature](https://github.com/nilsreichardt/verify-safe-to-test-label/security/advisories/new).
 
-1. Go to the repository on GitHub
-2. Open the [**Security** tab](https://github.com/nilsreichardt/verify-safe-to-test-label/security)
-3. Click [**Report a vulnerability**](https://github.com/nilsreichardt/verify-safe-to-test-label/security/advisories/new)
-4. Submit a private report with details and a proof of concept if possible
+1. Open the [**Security** tab](https://github.com/nilsreichardt/verify-safe-to-test-label/security).
+2. Click **Report a vulnerability**.
+3. Submit a private report with details and a proof of concept if possibls.
 
 Please **do not open a public issue** for security vulnerabilities.
 
