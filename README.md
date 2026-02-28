@@ -70,7 +70,7 @@ jobs:
     runs-on: macos-latest
     steps:
       # [... steps for macos tests]
-  
+
   linux-tests:
     needs: verify-safe-to-test-label # This job will only run if the verify-safe-to-test-label job passes
     runs-on: ubuntu-latest
@@ -80,11 +80,11 @@ jobs:
 
 ## Inputs
 
-| Name    | Description                                      | Default        |
-| ------- | ------------------------------------------------ | -------------- |
-| `label` | The name of the label required to pass the check. Always passes if the pull request is not from a fork. | `safe to test` |
-| `require-reapproval` | Remove the label on every workflow run to force re-review of new commits. When you set this to `false`, an attacker could push malicious code _after_ you marked the code as safe with the label. | `true` |
-| `repo-token` | Token used to remove labels when `require-reapproval=true`. Requires `pull-requests: write` | `github.token` |
+| Name                 | Description                                                                                                                                                                                       | Default        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `label`              | The name of the label required to pass the check. Always passes if the pull request is not from a fork.                                                                                           | `safe to test` |
+| `require-reapproval` | Remove the label on every workflow run to force re-review of new commits. When you set this to `false`, an attacker could push malicious code _after_ you marked the code as safe with the label. | `true`         |
+| `repo-token`         | Token used to remove labels when `require-reapproval=true`. Requires `pull-requests: write`                                                                                                       | `github.token` |
 
 ## Motivation: The "Pwn Request"
 
@@ -141,12 +141,12 @@ The action only:
 
 The action:
 
-* does **not** check out repository code
-* does **not** execute shell commands
-* does **not** read repository files
-* does **not** access workflow secrets
-* does **not** send network requests to external services
-* does **not** include telemetry, analytics, or tracking
+- does **not** check out repository code
+- does **not** execute shell commands
+- does **not** read repository files
+- does **not** access workflow secrets
+- does **not** send network requests to external services
+- does **not** include telemetry, analytics, or tracking
 
 The only network communication is to `api.github.com` using the official GitHub Octokit client.
 
@@ -154,8 +154,8 @@ The only network communication is to `api.github.com` using the official GitHub 
 
 The action intentionally uses only official GitHub libraries:
 
-* `@actions/core`
-* `@actions/github`
+- `@actions/core`
+- `@actions/github`
 
 No third-party runtime dependencies are included.
 
@@ -178,8 +178,7 @@ uses: nilsreichardt/verify-safe-to-test-label@<full-commit-sha>
 
 A commit SHA is immutable and protects you if a future release is compromised.
 
-See GitHub’s guidance:
-[https://docs.github.com/en/actions/reference/security/secure-use#using-third-party-actions](https://docs.github.com/en/actions/reference/security/secure-use#using-third-party-actions)
+See GitHub’s guidance: [Security hardening for GitHub Actions](https://docs.github.com/en/actions/reference/security/secure-use#using-third-party-actions)
 
 ### Reporting Vulnerabilities
 
