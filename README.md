@@ -113,3 +113,74 @@ The **Label Gate** solution allows you to keep `pull_request_target` while addin
 3.  A maintainer reviews the code. If it's safe, they add the `safe to test` label.
 4.  After the label assignment, the workflow is re-triggered. Now the action passes, and secrets are exposed only to the code you've vetted.
 5.  By default, after the workflow run, the label is removed again to require a new assignment for the next workflow run.
+
+## Required Permissions
+
+The action requires the smallest possible permissions:
+
+| Permission             | Why                                                              |
+| ---------------------- | ---------------------------------------------------------------- |
+| `pull-requests: write` | Required only to remove the label when `require-reapproval=true` |
+
+No other permissions are used or needed.
+
+## Security
+
+This action is intended to run in a **high-privilege CI context** (`pull_request_target`).
+For that reason, the design goal is to make the behavior easy to understand and audit.
+
+### What this action does
+
+The action only:
+
+1. Reads pull request metadata (labels)
+2. Fails the workflow if the required label is missing
+3. Optionally removes the label via the GitHub REST API
+
+### What this action does **not** do
+
+The action:
+
+* does **not** check out repository code
+* does **not** execute shell commands
+* does **not** read repository files
+* does **not** access workflow secrets
+* does **not** send network requests to external services
+* does **not** include telemetry, analytics, or tracking
+
+The only network communication is to `api.github.com` using the official GitHub Octokit client.
+
+### Dependencies
+
+The action intentionally uses only official GitHub libraries:
+
+* `@actions/core`
+* `@actions/github`
+
+No third-party runtime dependencies are included.
+
+### Auditability
+
+The source code is intentionally small and readable so it can be reviewed quickly.
+Maintainers are encouraged to audit the action before use. The full behavior is contained in a single file: [index.js](./index.js)
+
+Because the action performs only label inspection and a single GitHub API call, a manual review typically takes only a few minutes.
+
+The behavior is fully unit-tested, and tests verify the label validation and permission handling logic.
+
+### Pin the Action Version
+
+For maximum supply-chain security, you should pin this action to a full commit SHA instead of a version tag:
+
+```yaml
+uses: nilsreichardt/verify-safe-to-test-label@<full-commit-sha>
+```
+
+A commit SHA is immutable and protects you if a future release is compromised.
+
+See GitHub’s guidance:
+[https://docs.github.com/en/actions/reference/security/secure-use#using-third-party-actions](https://docs.github.com/en/actions/reference/security/secure-use#using-third-party-actions)
+
+### Reporting Vulnerabilities
+
+If you find a security vulnerability for this action, please report it privately via GitHub’s "Report a vulnerability" feature. See [`SECURITY.md`](./SECURITY.md) for details.
